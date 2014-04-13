@@ -855,13 +855,8 @@ void HandleDragDropFinish(StringHash eventType, VariantMap& eventData)
             }
             else if(type == BROWSER_TYPE_MODEL)
             {
-                Model@ model = cache.GetResource("Model", browserFile.resourceKey);
-                if (model is null)
-                    return;
-
-                StaticModel@ staticModel = cast<StaticModel>(targetNode.CreateComponent("StaticModel"));
-                staticModel.model = model;
-                createdComponent = staticModel;
+                CreateModelWithStaticModel(browserFile.resourceKey, targetNode);
+                return;
             }
             else if (type == BROWSER_TYPE_PARTICLEEMITTER)
             {
@@ -1613,83 +1608,69 @@ void EndSelectionModify()
 void HandleHierarchyContextCreateReplicatedNode()
 {
     CreateNode(REPLICATED);
-    CloseContextMenu();
 }
 
 void HandleHierarchyContextCreateLocalNode()
 {
     CreateNode(LOCAL);
-    CloseContextMenu();
 }
 
 void HandleHierarchyContextCopy()
 {
     Copy();
-    CloseContextMenu();
 }
 
 void HandleHierarchyContextCut()
 {
     Cut();
-    CloseContextMenu();
 }
 
 void HandleHierarchyContextDelete()
 {
     Delete();
-    CloseContextMenu();
 }
 
 void HandleHierarchyContextPaste()
 {
     Paste();
-    CloseContextMenu();
 }
 
 void HandleHierarchyContextResetToDefault()
 {
     ResetToDefault();
-    CloseContextMenu();
 }
 
 void HandleHierarchyContextResetPosition()
 {
     SceneResetPosition();
-    CloseContextMenu();
 }
 
 void HandleHierarchyContextResetRotation()
 {
     SceneResetRotation();
-    CloseContextMenu();
 }
 
 void HandleHierarchyContextResetScale()
 {
     SceneResetScale();
-    CloseContextMenu();
 }
 
 void HandleHierarchyContextEnableDisable()
 {
     SceneToggleEnable();
-    CloseContextMenu();
 }
 
 void HandleHierarchyContextUnparent()
 {
     SceneUnparent();
-    CloseContextMenu();
 }
 
 void HandleHierarchyContextUIElementCloseUILayout()
 {
     CloseUILayout();
-    CloseContextMenu();
 }
 
 void HandleHierarchyContextUIElementCloseAllUILayouts()
 {
     CloseAllUILayouts();
-    CloseContextMenu();
 }

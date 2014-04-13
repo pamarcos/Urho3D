@@ -22,6 +22,8 @@ const String TEMP_SCENE_NAME("_tempscene_.xml");
 const ShortStringHash CALLBACK_VAR("Callback");
 const ShortStringHash INDENT_MODIFIED_BY_ICON_VAR("IconIndented");
 
+const ShortStringHash VAR_CONTEXT_MENU_HANDLER("ContextMenuHandler");
+
 const int SHOW_POPUP_INDICATOR = -1;
 const uint MAX_QUICK_MENU_ITEMS = 10;
 
@@ -1461,6 +1463,22 @@ Menu@ CreateContextMenuItem(String text, String handler)
     menuText.style = "EditorMenuText";
     menu.AddChild(menuText);
     menuText.text = text;
-    SubscribeToEvent(menu, "Released", handler);
+    menu.vars[VAR_CONTEXT_MENU_HANDLER] = handler;
+    SubscribeToEvent(menu, "Released", "ContextMenuEventWrapper");
     return menu;
+}
+
+void ContextMenuEventWrapper(StringHash eventType, VariantMap& eventData)
+{
+    UIElement@ uiElement = eventData["Element"].GetPtr();
+    if (uiElement is null)
+        return;
+
+    String handler = uiElement.vars[VAR_CONTEXT_MENU_HANDLER].GetString();
+    if (!handler.empty)
+    {
+        SubscribeToEvent(uiElement, "Released", handler);
+        uiElement.SendEvent("Released", eventData);
+    }
+    CloseContextMenu();
 }

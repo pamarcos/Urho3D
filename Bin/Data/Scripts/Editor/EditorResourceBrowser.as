@@ -39,8 +39,8 @@ const int BROWSER_TYPE_ANIMATION_SETTINGS = 15;
 const int BROWSER_TYPE_RENDERPATH = 16;
 const int BROWSER_TYPE_TEXTURE_ATLAS = 17;
 const int BROWSER_TYPE_2D_PARTICLE_EFFECT = 18;
-const int BROWSER_TYPE_TEXTURE_3D = 18;
-const int BROWSER_TYPE_CUBEMAP = 19;
+const int BROWSER_TYPE_TEXTURE_3D = 19;
+const int BROWSER_TYPE_CUBEMAP = 20;
 
 const ShortStringHash XML_TYPE_SCENE("scene");
 const ShortStringHash XML_TYPE_NODE("node");
@@ -485,7 +485,6 @@ void HandleBrowserEditResource(StringHash eventType, VariantMap& eventData)
         if (material !is null)
             EditMaterial(material);
     }
-    CloseContextMenu();
 }
 
 void HandleBrowserOpenResource(StringHash eventType, VariantMap& eventData)
@@ -494,7 +493,6 @@ void HandleBrowserOpenResource(StringHash eventType, VariantMap& eventData)
     BrowserFile@ file = GetBrowserFileFromUIElement(element);
     if (file !is null)
         OpenResource(file.resourceKey);
-    CloseContextMenu();
 }
 
 void HandleBrowserImportScene(StringHash eventType, VariantMap& eventData)
@@ -503,7 +501,6 @@ void HandleBrowserImportScene(StringHash eventType, VariantMap& eventData)
     BrowserFile@ file = GetBrowserFileFromUIElement(element);
     if (file !is null)
         ImportScene(file.GetFullPath());
-    CloseContextMenu();
 }
 
 void HandleBrowserImportModel(StringHash eventType, VariantMap& eventData)
@@ -512,7 +509,6 @@ void HandleBrowserImportModel(StringHash eventType, VariantMap& eventData)
     BrowserFile@ file = GetBrowserFileFromUIElement(element);
     if (file !is null)
         ImportModel(file.GetFullPath());
-    CloseContextMenu();
 }
 
 void HandleBrowserOpenUILayout(StringHash eventType, VariantMap& eventData)
@@ -521,23 +517,30 @@ void HandleBrowserOpenUILayout(StringHash eventType, VariantMap& eventData)
     BrowserFile@ file = GetBrowserFileFromUIElement(element);
     if (file !is null)
         OpenUILayout(file.GetFullPath());
-    CloseContextMenu();
 }
 
 void HandleBrowserInstantiateStaticModel(StringHash eventType, VariantMap& eventData)
 {
+    UIElement@ element = eventData["Element"].GetPtr();
+    BrowserFile@ file = GetBrowserFileFromUIElement(element);
+    if (file !is null)
+        CreateModelWithStaticModel(file.resourceKey, editNode);
 }
 
 void HandleBrowserInstantiateAnimatedModel(StringHash eventType, VariantMap& eventData)
 {
+    UIElement@ element = eventData["Element"].GetPtr();
+    BrowserFile@ file = GetBrowserFileFromUIElement(element);
+    if (file !is null)
+        CreateModelWithAnimatedModel(file.resourceKey, editNode);
 }
+
 void HandleBrowserInstantiatePrefab(StringHash eventType, VariantMap& eventData)
 {
     UIElement@ element = eventData["Element"].GetPtr();
     BrowserFile@ file = GetBrowserFileFromUIElement(element);
     if (file !is null)
         LoadNode(file.GetFullPath());
-    CloseContextMenu();
 }
 
 void HandleBrowserInstantiateInSpawnEditor(StringHash eventType, VariantMap& eventData)
@@ -551,7 +554,6 @@ void HandleBrowserInstantiateInSpawnEditor(StringHash eventType, VariantMap& eve
         RefreshPickedObjects();
         ShowSpawnEditor();
     }
-    CloseContextMenu();
 }
 
 void HandleBrowserLoadScene(StringHash eventType, VariantMap& eventData)
@@ -560,7 +562,6 @@ void HandleBrowserLoadScene(StringHash eventType, VariantMap& eventData)
     BrowserFile@ file = GetBrowserFileFromUIElement(element);
     if (file !is null)
         LoadScene(file.GetFullPath());
-    CloseContextMenu();
 }
 
 void HandleBrowserRunScript(StringHash eventType, VariantMap& eventData)
@@ -569,14 +570,12 @@ void HandleBrowserRunScript(StringHash eventType, VariantMap& eventData)
     BrowserFile@ file = GetBrowserFileFromUIElement(element);
     if (file !is null)
         ExecuteScript(ExtractFileName(eventData));
-    CloseContextMenu();
 }
 
 void HandleBrowserFileDragBegin(StringHash eventType, VariantMap& eventData)
 {
     UIElement@ uiElement = eventData["Element"].GetPtr();
     @browserDragFile = GetBrowserFileFromUIElement(uiElement);
-    CloseContextMenu();
 }
 
 void HandleBrowserFileDragEnd(StringHash eventType, VariantMap& eventData)

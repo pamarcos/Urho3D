@@ -1053,3 +1053,31 @@ void AssignModel(StaticModel@ assignee, String modelPath)
     SetSceneModified();
     FocusComponent(assignee); 
 }
+
+void CreateModelWithStaticModel(String filepath, Node@ parent)
+{
+    if (parent is null)
+        return;
+
+    Model@ model = cache.GetResource("Model", filepath);
+    if (model is null)
+        return;
+
+    StaticModel@ staticModel = cast<StaticModel>(editNode.CreateComponent("StaticModel"));
+    staticModel.model = model;
+    CreateLoadedComponent(staticModel);
+}
+
+void CreateModelWithAnimatedModel(String filepath, Node@ parent)
+{
+    if (parent is null)
+        return;
+
+    Model@ model = cache.GetResource("Model", filepath);
+    if (model is null)
+        return;
+
+    AnimatedModel@ animatedModel = cast<StaticModel>(editNode.CreateComponent("AnimatedModel"));
+    animatedModel.model = model;
+    CreateLoadedComponent(animatedModel);
+}
