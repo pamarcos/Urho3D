@@ -9,6 +9,7 @@ Window@ mruScenesPopup;
 Array<QuickMenuItem@> quickMenuItems;
 FileSelector@ uiFileSelector;
 String consoleCommandInterpreter;
+Window@ contextMenu;
 
 const ShortStringHash UI_ELEMENT_TYPE("UIElement");
 const ShortStringHash WINDOW_TYPE("Window");
@@ -66,6 +67,7 @@ void CreateUI()
     CreateToolBar();
     CreateSecondaryToolBar();
     CreateQuickMenu();
+    CreateContextMenu();
     CreateHierarchyWindow();
     CreateAttributeInspectorWindow();
     CreateEditorSettingsDialog();
@@ -75,6 +77,7 @@ void CreateUI()
     CreateStatsBar();
     CreateConsole();
     CreateDebugHud();
+    CreateResourceBrowser();
     CreateCamera();
 
     SubscribeToEvent("ScreenMode", "ResizeUI");
@@ -237,6 +240,7 @@ void CreateQuickMenu()
     quickMenu = ui.LoadLayout(cache.GetResource("XMLFile", "UI/EditorQuickMenu.xml"));
     quickMenu.enabled = false;
     quickMenu.visible = false;
+    quickMenu.opacity = uiMaxOpacity;
     
     // Handle a dummy search in the quick menu to finalize its initial size to empty
     PerformQuickMenuSearch("");
@@ -407,6 +411,7 @@ void CreateMenuBar()
         Window@ popup = menu.popup;
         popup.AddChild(CreateMenuItem("Hierarchy", @ShowHierarchyWindow, 'H', QUAL_CTRL));
         popup.AddChild(CreateMenuItem("Attribute inspector", @ShowAttributeInspectorWindow, 'I', QUAL_CTRL));
+        popup.AddChild(CreateMenuItem("Resource browser", @ShowResourceBrowserWindow, 'B', QUAL_CTRL));
         popup.AddChild(CreateMenuItem("Material editor", @ShowMaterialEditor));
         popup.AddChild(CreateMenuItem("Spawn editor", @ShowSpawnEditor));
         popup.AddChild(CreateMenuItem("Editor settings", @ShowEditorSettingsDialog));
@@ -948,6 +953,12 @@ void CenterDialog(UIElement@ element)
     element.SetPosition((graphics.width - size.x) / 2, (graphics.height - size.y) / 2);
 }
 
+void CreateContextMenu()
+{
+    contextMenu = ui.LoadLayout(cache.GetResource("XMLFile", "UI/EditorContextMenu.xml"));
+    ui.root.AddChild(contextMenu);
+}
+
 void UpdateWindowTitle()
 {
     String sceneName = GetFileNameAndExtension(editorScene.fileName);
@@ -1118,6 +1129,8 @@ void HandleKeyDown(StringHash eventType, VariantMap& eventData)
             UnhideUI();
         else if (console.visible)
             console.visible = false;
+        else if (contextMenu.visible)
+            CloseContextMenu();
         else if (quickMenu.visible)
         {
             quickMenu.visible = false;
@@ -1402,4 +1415,52 @@ bool LoadMostRecentScene()
         return false;
 
     return LoadScene(text.text);
+}
+
+// Set from click to false if opening menu procedurally.
+void OpenContextMenu(bool fromClick=true)
+{
+    if (contextMenu is null)
+        return;
+
+    contextMenu.enabled = true;
+    contextMenu.visible = true;
+    contextMenu.BringToFront();
+    if (fromClick)
+        contextMenuActionWaitFrame=true;
+}
+
+void CloseContextMenu()
+{
+    if (contextMenu is null)
+        return;
+
+    contextMenu.enabled = false;
+    contextMenu.visible = false;
+}
+
+void ActivateContextMenu(Array<UIElement@> actions)
+{
+    contextMenu.RemoveAllChildren();
+    for (uint i=0; i< actions.length; i++)
+    {
+        contextMenu.AddChild(actions[i]);
+    }
+    contextMenu.SetFixedHeight(24*actions.length+6);
+    contextMenu.position = ui.cursor.screenPosition + IntVector2(10,-10);
+    OpenContextMenu();
+}
+
+Menu@ CreateContextMenuItem(String text, String handler)
+{
+    Menu@ menu = Menu();
+    menu.defaultStyle = uiStyle;
+    menu.style = AUTO_STYLE;
+    menu.SetLayout(LM_HORIZONTAL, 0, IntRect(8, 2, 8, 2));
+    Text@ menuText = Text();
+    menuText.style = "EditorMenuText";
+    menu.AddChild(menuText);
+    menuText.text = text;
+    SubscribeToEvent(menu, "Released", handler);
+    return menu;
 }

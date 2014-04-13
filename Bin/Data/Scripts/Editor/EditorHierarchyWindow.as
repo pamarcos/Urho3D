@@ -7,6 +7,8 @@ const int ITEM_UI_ELEMENT = 3;
 const uint NO_ITEM = M_MAX_UNSIGNED;
 const ShortStringHash SCENE_TYPE("Scene");
 const ShortStringHash NODE_TYPE("Node");
+const ShortStringHash STATICMODEL_TYPE("StaticModel");
+const ShortStringHash ANIMATEDMODEL_TYPE("AnimatedModel");
 const ShortStringHash STATICMODELGROUP_TYPE("StaticModelGroup");
 const ShortStringHash SPLINEPATH_TYPE("SplinePath");
 const ShortStringHash CONSTRAINT_TYPE("Constraint");
@@ -57,7 +59,7 @@ void CreateHierarchyWindow()
     hierarchyWindow = ui.LoadLayout(cache.GetResource("XMLFile", "UI/EditorHierarchyWindow.xml"));
     hierarchyList = hierarchyWindow.GetChild("HierarchyList");
     ui.root.AddChild(hierarchyWindow);
-    int height = Min(ui.root.height - 60, 500);
+    int height = Min(ui.root.height - 60, 460);
     hierarchyWindow.SetSize(300, height);
     hierarchyWindow.SetPosition(35, 100);
     hierarchyWindow.opacity = uiMaxOpacity;
@@ -77,6 +79,7 @@ void CreateHierarchyWindow()
     SubscribeToEvent(hierarchyWindow.GetChild("CollapseButton", true), "Released", "ExpandCollapseHierarchy");
     SubscribeToEvent(hierarchyList, "SelectionChanged", "HandleHierarchyListSelectionChange");
     SubscribeToEvent(hierarchyList, "ItemDoubleClicked", "HandleHierarchyListDoubleClick");
+    SubscribeToEvent(hierarchyList, "ItemClicked", "HandleHierarchyItemClick");
     SubscribeToEvent("DragDropTest", "HandleDragDropTest");
     SubscribeToEvent("DragDropFinish", "HandleDragDropFinish");
     SubscribeToEvent(editorScene, "NodeAdded", "HandleNodeAdded");
@@ -743,6 +746,69 @@ void HandleHierarchyListDoubleClick(StringHash eventType, VariantMap& eventData)
     }
 }
 
+void HandleHierarchyItemClick(StringHash eventType, VariantMap& eventData)
+{
+    if (eventData["Button"].GetInt() != MOUSEB_RIGHT)
+        return;
+
+    UIElement@ uiElement = eventData["Item"].GetPtr();
+    int selectionIndex = eventData["Selection"].GetInt();
+
+    Array<UIElement@> actions;
+    int type = uiElement.vars[TYPE_VAR].GetInt();
+
+    // Adds left clicked items to selection which is not normal listview behavior
+    if (type == ITEM_COMPONENT || type == ITEM_NODE)
+    {
+        if (input.keyDown[KEY_LSHIFT])
+            hierarchyList.AddSelection(selectionIndex);
+        else
+        {
+            hierarchyList.ClearSelection();
+            hierarchyList.AddSelection(selectionIndex);
+        }
+    }
+
+    if (type == ITEM_COMPONENT)
+    {
+        Component@ targetComponent = editorScene.GetComponent(uiElement.vars[COMPONENT_ID_VAR].GetUInt());
+        if (targetComponent is null)
+            return;
+
+        actions.Push(CreateContextMenuItem("Copy", "HandleHierarchyContextCopy"));
+        actions.Push(CreateContextMenuItem("Cut", "HandleHierarchyContextCut"));
+        actions.Push(CreateContextMenuItem("Delete", "HandleHierarchyContextDelete"));
+        actions.Push(CreateContextMenuItem("Paste", "HandleHierarchyContextPaste")); 
+        actions.Push(CreateContextMenuItem("Enable/disable", "HandleHierarchyContextEnableDisable"));
+
+        /* actions.Push(CreateBrowserFileActionMenu("Edit", "HandleBrowserEditResource", file)); */
+    }
+    else if (type == ITEM_NODE)
+    {
+        actions.Push(CreateContextMenuItem("Create Replicated Node", "HandleHierarchyContextCreateReplicatedNode"));
+        actions.Push(CreateContextMenuItem("Create Local Node", "HandleHierarchyContextCreateLocalNode"));
+        actions.Push(CreateContextMenuItem("Copy", "HandleHierarchyContextCopy"));
+        actions.Push(CreateContextMenuItem("Cut", "HandleHierarchyContextCut"));
+        actions.Push(CreateContextMenuItem("Delete", "HandleHierarchyContextDelete"));
+        actions.Push(CreateContextMenuItem("Paste", "HandleHierarchyContextPaste")); 
+        actions.Push(CreateContextMenuItem("Reset to default", "HandleHierarchyContextResetToDefault"));
+        actions.Push(CreateContextMenuItem("Reset position", "HandleHierarchyContextResetPosition"));
+        actions.Push(CreateContextMenuItem("Reset rotation", "HandleHierarchyContextResetRotation"));
+        actions.Push(CreateContextMenuItem("Reset scale", "HandleHierarchyContextResetScale"));
+        actions.Push(CreateContextMenuItem("Enable/disable", "HandleHierarchyContextEnableDisable"));
+        actions.Push(CreateContextMenuItem("Unparent", "HandleHierarchyContextUnparent"));
+    }
+    else if (type == ITEM_UI_ELEMENT)
+    {
+        // close ui element
+        actions.Push(CreateContextMenuItem("Close UI-Layout", "HandleHierarchyContextUIElementCloseUILayout"));
+        actions.Push(CreateContextMenuItem("Close all UI-layouts", "HandleHierarchyContextUIElementCloseAllUILayouts"));
+    }
+
+    if (actions.length > 0)
+        ActivateContextMenu(actions);
+}
+
 void HandleDragDropTest(StringHash eventType, VariantMap& eventData)
 {
     UIElement@ source = eventData["Source"].GetPtr();
@@ -760,6 +826,112 @@ void HandleDragDropFinish(StringHash eventType, VariantMap& eventData)
     eventData["Accept"] = accept;
     if (!accept)
         return;
+
+    // resource browser
+    if (source !is null && source.GetVar(TEXT_VAR_BROWSER_TYPE).GetInt() > 0)
+    {
+        int type = source.GetVar(TEXT_VAR_BROWSER_TYPE).GetInt();
+
+        BrowserFile@ browserFile = GetBrowserFileFromId(source.vars[TEXT_VAR_FILE_ID].GetUInt());
+        if (browserFile is null)
+            return;
+
+        Component@ createdComponent;
+        if (itemType == ITEM_NODE)
+        {
+            Node@ targetNode = editorScene.GetNode(target.vars[NODE_ID_VAR].GetUInt());
+            if (targetNode is null)
+                return;
+
+            // editNode = targetNode;
+
+            if (type == BROWSER_TYPE_PREFAB)
+            {
+                LoadNode(browserFile.GetFullPath(), targetNode);
+            }
+            else if(type == BROWSER_TYPE_SCRIPTFILE)
+            {
+                // TODO: not sure what to do here.  lots of choices.
+            }
+            else if(type == BROWSER_TYPE_MODEL)
+            {
+                Model@ model = cache.GetResource("Model", browserFile.resourceKey);
+                if (model is null)
+                    return;
+
+                StaticModel@ staticModel = cast<StaticModel>(targetNode.CreateComponent("StaticModel"));
+                staticModel.model = model;
+                createdComponent = staticModel;
+            }
+            else if (type == BROWSER_TYPE_PARTICLEEMITTER)
+            {
+                if (browserFile.isXml)
+                {
+                    XMLFile@ file = cache.GetResource("XMLFile", browserFile.resourceKey);
+                    if (file is null)
+                        return;
+
+                    ParticleEmitter@ emitter = targetNode.CreateComponent("ParticleEmitter");
+                    emitter.Load(file);
+                    createdComponent = emitter;
+                }
+            }
+            else if (type == BROWSER_TYPE_2D_PARTICLE_EFFECT)
+            {
+                if (browserFile.isXml)
+                {
+                    ParticleEffect2D@ effect = cache.GetResource("ParticleEffect2D", browserFile.resourceKey);
+                    if (effect is null)
+                        return;
+
+                    ParticleEmitter2D@ emitter = targetNode.CreateComponent("ParticleEmitter2D");
+                    emitter.effect = effect;
+                    createdComponent = emitter;
+                }
+            }
+        }
+        else if (itemType == ITEM_COMPONENT)
+        {
+            Component@ targetComponent = editorScene.GetComponent(target.vars[COMPONENT_ID_VAR].GetUInt());
+
+            if (targetComponent is null)
+                return;
+
+            if (type == BROWSER_TYPE_MATERIAL)
+            {
+                StaticModel@ model = cast<StaticModel>(targetComponent);
+                if (model is null)
+                    return;
+
+                AssignMaterial(model, browserFile.resourceKey);
+            }
+            else if (type == BROWSER_TYPE_MODEL)
+            {
+                StaticModel@ staticModel = cast<StaticModel>(targetComponent);
+                if (staticModel is null)
+                    return;
+
+                AssignModel(staticModel, browserFile.resourceKey);
+            }
+        }
+        else
+        {
+            LineEdit@ text = cast<LineEdit>(target);
+            if (text is null)
+                return;
+            text.text = browserFile.resourceKey;
+            VariantMap data();
+            data["Element"] = text;
+            data["Text"] = text.text;
+            text.SendEvent("TextFinished", data);
+        }
+
+        if (createdComponent !is null)
+        {
+            CreateLoadedComponent(createdComponent);
+        }
+        return;
+    }
 
     if (itemType == ITEM_NODE)
     {
@@ -929,6 +1101,18 @@ bool TestDragDrop(UIElement@ source, UIElement@ target, int& itemType)
                 return false;
         }
 
+        // Resource browser
+        if (sourceNode is null && targetNode !is null)
+        {
+            itemType = ITEM_NODE;
+            int type = source.GetVar(TEXT_VAR_BROWSER_TYPE).GetInt();
+            return type == BROWSER_TYPE_PREFAB || 
+                type == BROWSER_TYPE_SCRIPTFILE || 
+                type == BROWSER_TYPE_MODEL || 
+                type == BROWSER_TYPE_PARTICLEEMITTER ||
+                type == BROWSER_TYPE_2D_PARTICLE_EFFECT;
+        }
+
         return true;
     }
     else if (targetItemType == ITEM_UI_ELEMENT)
@@ -971,11 +1155,51 @@ bool TestDragDrop(UIElement@ source, UIElement@ target, int& itemType)
         if (sourceNode !is null && targetComponent !is null && (targetComponent.type == STATICMODELGROUP_TYPE ||
             targetComponent.type == CONSTRAINT_TYPE || targetComponent.type == SPLINEPATH_TYPE))
             return true;
-        else
-            return false;
-    }
 
+        // resource browser
+        int type = source.GetVar(TEXT_VAR_BROWSER_TYPE).GetInt();
+        if (targetComponent.type == STATICMODEL_TYPE || targetComponent.type == ANIMATEDMODEL_TYPE)
+            return type == BROWSER_TYPE_MATERIAL || type == BROWSER_TYPE_MODEL;
+
+        return false;
+    }
+    else if (source.vars.Contains(TEXT_VAR_BROWSER_TYPE)) // only testing resource browser ui elements
+    {
+        int type = source.GetVar(TEXT_VAR_BROWSER_TYPE).GetInt();
+
+        // test against resource pickers
+        LineEdit@ lineEdit = cast<LineEdit>(target);
+        if (lineEdit !is null)
+        {
+            ShortStringHash resourceType = GetResourceTypeFromPickerLineEdit(lineEdit);
+            if (resourceType == ShortStringHash("Material") && type == BROWSER_TYPE_MATERIAL)
+                return true;
+            else if (resourceType == ShortStringHash("Model") && type == BROWSER_TYPE_MODEL)
+                return true;
+            else if (resourceType == ShortStringHash("Animation") && type == BROWSER_TYPE_ANIMATION)
+                return true;
+        }
+    }
     return true;
+}
+
+ShortStringHash GetResourceTypeFromPickerLineEdit(UIElement@ lineEdit)
+{
+    Array<Serializable@>@ targets = GetAttributeEditorTargets(lineEdit);
+    if (!targets.empty)
+    {
+        resourcePickIndex = lineEdit.vars["Index"].GetUInt();
+        resourcePickSubIndex = lineEdit.vars["SubIndex"].GetUInt();
+        AttributeInfo info = targets[0].attributeInfos[resourcePickIndex];
+        ShortStringHash resourceType;
+        if (info.type == VAR_RESOURCEREF)
+            return targets[0].attributes[resourcePickIndex].GetResourceRef().type;
+        else if (info.type == VAR_RESOURCEREFLIST)
+            return targets[0].attributes[resourcePickIndex].GetResourceRefList().type;
+        else if (info.type == VAR_VARIANTVECTOR)
+            return targets[0].attributes[resourcePickIndex].GetVariantVector()[resourcePickSubIndex].GetResourceRef().type;
+    }
+    return ShortStringHash();
 }
 
 void FocusNode(Node@ node)
@@ -1384,4 +1608,88 @@ void EndSelectionModify()
     // The large operation on selected nodes has ended. Update node/component selection now
     inSelectionModify = false;
     HandleHierarchyListSelectionChange();
+}
+
+void HandleHierarchyContextCreateReplicatedNode()
+{
+    CreateNode(REPLICATED);
+    CloseContextMenu();
+}
+
+void HandleHierarchyContextCreateLocalNode()
+{
+    CreateNode(LOCAL);
+    CloseContextMenu();
+}
+
+void HandleHierarchyContextCopy()
+{
+    Copy();
+    CloseContextMenu();
+}
+
+void HandleHierarchyContextCut()
+{
+    Cut();
+    CloseContextMenu();
+}
+
+void HandleHierarchyContextDelete()
+{
+    Delete();
+    CloseContextMenu();
+}
+
+void HandleHierarchyContextPaste()
+{
+    Paste();
+    CloseContextMenu();
+}
+
+void HandleHierarchyContextResetToDefault()
+{
+    ResetToDefault();
+    CloseContextMenu();
+}
+
+void HandleHierarchyContextResetPosition()
+{
+    SceneResetPosition();
+    CloseContextMenu();
+}
+
+void HandleHierarchyContextResetRotation()
+{
+    SceneResetRotation();
+    CloseContextMenu();
+}
+
+void HandleHierarchyContextResetScale()
+{
+    SceneResetScale();
+    CloseContextMenu();
+}
+
+void HandleHierarchyContextEnableDisable()
+{
+    SceneToggleEnable();
+    CloseContextMenu();
+}
+
+void HandleHierarchyContextUnparent()
+{
+    SceneUnparent();
+    CloseContextMenu();
+}
+
+void HandleHierarchyContextUIElementCloseUILayout()
+{
+    CloseUILayout();
+    CloseContextMenu();
+}
+
+void HandleHierarchyContextUIElementCloseAllUILayouts()
+{
+    CloseAllUILayouts();
+    CloseContextMenu();
 }

@@ -785,3 +785,82 @@ class EditMaterialAction : EditAction
         }
     }
 }
+
+class AssignMaterialAction : EditAction
+{
+    WeakHandle model;
+    Array<String> oldMaterials;
+    String newMaterialName;
+
+    void Define(StaticModel@ model_, Array<Material@> oldMaterials_, Material@ newMaterial_)
+    {
+        model = model_;
+        for (uint i =0; i < oldMaterials_.length; i++)
+        {
+            oldMaterials.Push(oldMaterials_[i].name);
+        }
+        newMaterialName = newMaterial_.name;
+    }
+
+    void Undo()
+    {
+        StaticModel@ staticModel = model.Get();
+        if (staticModel is null)
+            return;
+
+        for(uint i=0; i<oldMaterials.length; i++)
+        {
+            Material@ material = cache.GetResource("Material", oldMaterials[i]);
+            staticModel.materials[i] = material;
+        }
+    }
+
+    void Redo()
+    {
+        StaticModel@ staticModel = model.Get();
+        if (staticModel is null)
+            return;
+
+        Material@ material = cache.GetResource("Material", newMaterialName);
+        staticModel.material = material;
+    }
+}
+
+class AssignModelAction : EditAction
+{
+    WeakHandle staticModel;
+    String oldModel;
+    String newModel;
+
+    void Define(StaticModel@ staticModel_, Model@ oldModel_, Model@ newModel_)
+    {
+        staticModel = staticModel_;
+        oldModel = oldModel_.name;
+        newModel = newModel_.name;
+    }
+
+    void Undo()
+    {
+        StaticModel@ staticModel_ = staticModel.Get();
+        if (staticModel_ is null)
+            return;
+
+        Model@ model = cache.GetResource("Model", oldModel);
+        if (model is null)
+            return;
+        staticModel_.model = model;
+    }
+
+    void Redo()
+    {
+        StaticModel@ staticModel_ = staticModel.Get();
+        if (staticModel_ is null)
+            return;
+
+        Model@ model = cache.GetResource("Model", newModel);
+        if (model is null)
+            return;
+        staticModel_.model = model;
+    }
+
+}
