@@ -72,6 +72,7 @@ const ShortStringHash EXTENSION_TYPE_DDS(".dds");
 const ShortStringHash EXTENSION_TYPE_PNG(".png");
 const ShortStringHash EXTENSION_TYPE_JPG(".jpg");
 const ShortStringHash EXTENSION_TYPE_JPEG(".jpeg");
+const ShortStringHash EXTENSION_TYPE_TGA(".tga");
 const ShortStringHash EXTENSION_TYPE_OBJ(".obj");
 const ShortStringHash EXTENSION_TYPE_FBX(".fbx");
 const ShortStringHash EXTENSION_TYPE_COLLADA(".dae");
@@ -859,6 +860,11 @@ class BrowserFile
         else if(type == EXTENSION_TYPE_JPEG)
         {
             extensionType = EXTENSION_TYPE_JPEG;
+            return BROWSER_TYPE_IMAGE;
+        }
+        else if(type == EXTENSION_TYPE_TGA)
+        {
+            extensionType = EXTENSION_TYPE_TGA;
             return BROWSER_TYPE_IMAGE;
         }
         else if(type == EXTENSION_TYPE_OBJ)
