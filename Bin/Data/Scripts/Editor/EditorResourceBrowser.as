@@ -9,8 +9,8 @@ bool browserActionMenuWaitFrame = false;
 int browserSearchSortMode = 0;
 
 BrowserDir@ rootDir;
-Array<BrowserDir@> browserDirs;
 Array<BrowserFile@> browserFiles;
+Dictionary browserDirs;
 
 Array<BrowserFile@> browserFilesToScan;
 const uint BROWSER_WORKER_ITEMS_PER_TICK = 10;
@@ -18,29 +18,29 @@ const uint BROWSER_SEARCH_LIMIT = 50;
 const int BROWSER_SORT_MODE_ALPHA = 1;
 const int BROWSER_SORT_MODE_SEARCH = 2;
 
-const int BROWSER_TYPE_UNUSABLE = -2;
-const int BROWSER_TYPE_UNKNOWN = -1;
-const int BROWSER_TYPE_NOTSET = 0;
-const int BROWSER_TYPE_SCENE = 1;
-const int BROWSER_TYPE_SCRIPTFILE = 2;
-const int BROWSER_TYPE_MODEL = 3;
-const int BROWSER_TYPE_MATERIAL = 4;
-const int BROWSER_TYPE_ANIMATION = 5;
-const int BROWSER_TYPE_IMAGE = 6;
-const int BROWSER_TYPE_SOUND = 7;
-const int BROWSER_TYPE_TEXTURE = 8;
-const int BROWSER_TYPE_FONT = 9;
-const int BROWSER_TYPE_PREFAB = 10;
-const int BROWSER_TYPE_TECHNIQUE = 11;
-const int BROWSER_TYPE_PARTICLEEMITTER = 12;
-const int BROWSER_TYPE_UIELEMENT = 13;
-const int BROWSER_TYPE_UIELEMENTS = 14;
-const int BROWSER_TYPE_ANIMATION_SETTINGS = 15;
-const int BROWSER_TYPE_RENDERPATH = 16;
-const int BROWSER_TYPE_TEXTURE_ATLAS = 17;
-const int BROWSER_TYPE_2D_PARTICLE_EFFECT = 18;
-const int BROWSER_TYPE_TEXTURE_3D = 19;
-const int BROWSER_TYPE_CUBEMAP = 20;
+const int RESOURCE_TYPE_UNUSABLE = -2;
+const int RESOURCE_TYPE_UNKNOWN = -1;
+const int RESOURCE_TYPE_NOTSET = 0;
+const int RESOURCE_TYPE_SCENE = 1;
+const int RESOURCE_TYPE_SCRIPTFILE = 2;
+const int RESOURCE_TYPE_MODEL = 3;
+const int RESOURCE_TYPE_MATERIAL = 4;
+const int RESOURCE_TYPE_ANIMATION = 5;
+const int RESOURCE_TYPE_IMAGE = 6;
+const int RESOURCE_TYPE_SOUND = 7;
+const int RESOURCE_TYPE_TEXTURE = 8;
+const int RESOURCE_TYPE_FONT = 9;
+const int RESOURCE_TYPE_PREFAB = 10;
+const int RESOURCE_TYPE_TECHNIQUE = 11;
+const int RESOURCE_TYPE_PARTICLEEMITTER = 12;
+const int RESOURCE_TYPE_UIELEMENT = 13;
+const int RESOURCE_TYPE_UIELEMENTS = 14;
+const int RESOURCE_TYPE_ANIMATION_SETTINGS = 15;
+const int RESOURCE_TYPE_RENDERPATH = 16;
+const int RESOURCE_TYPE_TEXTURE_ATLAS = 17;
+const int RESOURCE_TYPE_2D_PARTICLE_EFFECT = 18;
+const int RESOURCE_TYPE_TEXTURE_3D = 19;
+const int RESOURCE_TYPE_CUBEMAP = 20;
 
 const ShortStringHash XML_TYPE_SCENE("scene");
 const ShortStringHash XML_TYPE_NODE("node");
@@ -87,7 +87,10 @@ const ShortStringHash EXTENSION_TYPE_HTML(".html");
 
 const ShortStringHash TEXT_VAR_FILE_ID("browser_file_id");
 const ShortStringHash TEXT_VAR_DIR_ID("browser_dir_id");
-const ShortStringHash TEXT_VAR_BROWSER_TYPE("browser_type");
+const ShortStringHash TEXT_VAR_RESOURCE_TYPE("resource_type");
+
+const int BROWSER_FILE_SOURCE_RESOURCE_DIR = 1;
+const int BROWSER_FILE_SOURCE_PACKAGE_FILE = 2;
 
 uint browserDirIndex = 1;
 uint browserFileIndex = 1;
@@ -113,14 +116,14 @@ void ScanResourceDirectories()
     browserFilesToScan.Clear();
 
     rootDir = BrowserDir("");
-    browserDirs.Push(rootDir);
+    browserDirs.Set("", @rootDir);
 
     // collect all of the items and sort them afterwards
     for(uint i=0; i < cache.resourceDirs.length; i++)
-        ScanDirectory(rootDir, i);
+        ScanResourceDir(i);
 
-    for(uint i=0; i < browserDirs.length; i++)
-        browserDirs[i].ScanFiles();
+    for(uint i=0; i < cache.packageFiles.length; i++)
+        ScanPackageFile(rootDir, i);
 }
 
 // used to stop ui from blocking while determining file types
@@ -182,9 +185,9 @@ void CreateDirList(BrowserDir@ dir, UIElement@ parentUI = null)
     Text@ dirText = Text();
     browserDirList.InsertItem(browserDirList.numItems, dirText, parentUI);
     dirText.style = "FileSelectorListText";
-    dirText.text = dir.resourceKey.empty ? "Root" : dir.name;
+    dirText.text = dir.resourceKey.empty ? "root" : dir.name;
     dirText.name = dir.resourceKey;
-    dirText.vars[TEXT_VAR_DIR_ID] = dir.id;
+    dirText.vars[TEXT_VAR_DIR_ID] = dir.resourceKey;
 
     // Sort directories alphetically
     browserSearchSortMode = BROWSER_SORT_MODE_ALPHA;
@@ -202,8 +205,7 @@ void CreateFileList(BrowserFile@ file)
     browserFileList.InsertItem(browserFileList.numItems, fileText);
     VariantMap params = VariantMap();
     fileText.vars[TEXT_VAR_FILE_ID] = file.id;
-    fileText.vars[TEXT_VAR_DIR_ID] = file.dir.id;
-    fileText.vars[TEXT_VAR_BROWSER_TYPE] = file.resourceType;
+    fileText.vars[TEXT_VAR_RESOURCE_TYPE] = file.resourceType;
     if (file.resourceType > 0)
         fileText.dragDropMode = DD_SOURCE;
 
@@ -220,13 +222,13 @@ void CreateFileList(BrowserFile@ file)
         Text@ text = Text();
         fileText.AddChild(text);
         text.style = "FileSelectorListText";
-        text.text = file.FriendlyTypeName();
+        text.text = file.ResourceTypeName();
     }
 
-    if (file.resourceType == BROWSER_TYPE_MATERIAL || 
-            file.resourceType == BROWSER_TYPE_MODEL ||
-            file.resourceType == BROWSER_TYPE_PARTICLEEMITTER ||
-            file.resourceType == BROWSER_TYPE_PREFAB
+    if (file.resourceType == RESOURCE_TYPE_MATERIAL || 
+            file.resourceType == RESOURCE_TYPE_MODEL ||
+            file.resourceType == RESOURCE_TYPE_PARTICLEEMITTER ||
+            file.resourceType == RESOURCE_TYPE_PREFAB
         )
     {
         SubscribeToEvent(fileText, "DragBegin", "HandleBrowserFileDragBegin");
@@ -247,37 +249,37 @@ void HandleBrowserFileClick(StringHash eventType, VariantMap& eventData)
         return;
 
     Array<UIElement@> actions;
-    if (file.resourceType == BROWSER_TYPE_MATERIAL)
+    if (file.resourceType == RESOURCE_TYPE_MATERIAL)
     {
         actions.Push(CreateBrowserFileActionMenu("Edit", "HandleBrowserEditResource", file));
     }
-    else if (file.resourceType == BROWSER_TYPE_MODEL)
+    else if (file.resourceType == RESOURCE_TYPE_MODEL)
     {
         actions.Push(CreateBrowserFileActionMenu("Instance Animated Model", "HandleBrowserInstantiateAnimatedModel", file));
         actions.Push(CreateBrowserFileActionMenu("Instance Static Model", "HandleBrowserInstantiateStaticModel", file));
     }
-    else if (file.resourceType == BROWSER_TYPE_PREFAB)
+    else if (file.resourceType == RESOURCE_TYPE_PREFAB)
     {
         actions.Push(CreateBrowserFileActionMenu("Instance Prefab", "HandleBrowserInstantiatePrefab", file));
         actions.Push(CreateBrowserFileActionMenu("Instance in Spawner", "HandleBrowserInstantiateInSpawnEditor", file));
     }
-    else if (file.extensionType == EXTENSION_TYPE_OBJ ||
-        file.extensionType == EXTENSION_TYPE_COLLADA ||
-        file.extensionType == EXTENSION_TYPE_FBX ||
-        file.extensionType == EXTENSION_TYPE_BLEND)
+    else if (file.fileType == EXTENSION_TYPE_OBJ ||
+        file.fileType == EXTENSION_TYPE_COLLADA ||
+        file.fileType == EXTENSION_TYPE_FBX ||
+        file.fileType == EXTENSION_TYPE_BLEND)
     {
         actions.Push(CreateBrowserFileActionMenu("Import Model", "HandleBrowserImportModel", file));
         actions.Push(CreateBrowserFileActionMenu("Import Scene", "HandleBrowserImportScene", file));
     }
-    else if (file.resourceType == BROWSER_TYPE_UIELEMENT)
+    else if (file.resourceType == RESOURCE_TYPE_UIELEMENT)
     {
         actions.Push(CreateBrowserFileActionMenu("Open UI Layout", "HandleBrowserOpenUILayout", file));
     }
-    else if (file.resourceType == BROWSER_TYPE_SCENE)
+    else if (file.resourceType == RESOURCE_TYPE_SCENE)
     {
         actions.Push(CreateBrowserFileActionMenu("Load Scene", "HandleBrowserLoadScene", file));
     }
-    else if (file.resourceType == BROWSER_TYPE_SCRIPTFILE)
+    else if (file.resourceType == RESOURCE_TYPE_SCRIPTFILE)
     {
         actions.Push(CreateBrowserFileActionMenu("Execute Script", "HandleBrowserRunScript", file));
     }
@@ -287,26 +289,95 @@ void HandleBrowserFileClick(StringHash eventType, VariantMap& eventData)
     ActivateContextMenu(actions);
 }
 
-void ScanDirectory(BrowserDir@ dir, uint resourceDirIndex)
+BrowserDir@ GetBrowserDir(String path)
 {
-    // scan for child directories
-    String resourceDir = cache.resourceDirs[resourceDirIndex];
-    String fullPath = resourceDir + dir.resourceKey;
+    BrowserDir@ browserDir;
+    browserDirs.Get(path, @browserDir);
+    return browserDir;
+}
 
-    Array<String> dirs = fileSystem.ScanDir(fullPath, "*", SCAN_DIRS, false);
+// Makes sure the entire directory tree exists and new dir is linked to parent
+BrowserDir@ InitBrowserDir(String path)
+{
+    BrowserDir@ browserDir;
+    if (browserDirs.Get(path, @browserDir))
+        return browserDir;
+
+    Array<String> parts = path.Split('/');
+    Array<String> finishedParts;
+    if (parts.length > 0)
+    {
+        BrowserDir@ parent = rootDir;
+        for( uint i = 0; i < parts.length; ++i )
+        {
+            finishedParts.Push(parts[i]);
+            String currentPath = Join(finishedParts, "/");
+            if (!browserDirs.Get(currentPath, @browserDir))
+            {
+                browserDir = BrowserDir(currentPath);
+                browserDirs.Set(currentPath, @browserDir);
+                parent.children.Push(browserDir);
+            }
+            @parent = browserDir;
+        } 
+        return browserDir;
+    }
+    return null;
+}
+
+void ScanResourceDir(uint resourceDirIndex)
+{
+    String resourceDir = cache.resourceDirs[resourceDirIndex];
+    ScanResourceDirFiles("", resourceDirIndex);
+    Array<String> dirs = fileSystem.ScanDir(resourceDir, "*", SCAN_DIRS, true);
     for (uint i=0; i < dirs.length; i++)
     {
-        String dirName = dirs[i];
-        if (dirName.StartsWith(".")) continue;
+        String path = dirs[i].ToLower();
+        if (path.EndsWith("."))
+            continue;
 
-        BrowserDir@ childDir = dir.GetChild(dirName);
-        if (childDir is null)
-        {
-            childDir = dir.AddDir(dirName);
-            browserDirs.Push(childDir);
-        }
+        InitBrowserDir(path);
+        ScanResourceDirFiles(path, resourceDirIndex);
+    }
+}
 
-        ScanDirectory(childDir, resourceDirIndex);
+void ScanPackageFile(BrowserDir@ dir, uint packageFileIndex)
+{
+    PackageFile@ packageFile = cache.packageFiles[packageFileIndex];
+    Dictionary dirs;
+    Array<String> entries = packageFile.GetEntryNames();
+    for(uint i=0; i < entries.length; i++)
+    {
+        String file = GetFileNameAndExtension(entries[i]);
+        String folder = GetPath(entries[i]);
+        BrowserDir@ browserDir = InitBrowserDir(folder);
+        BrowserFile@ browserFile = browserDir.AddFile(file, packageFileIndex, BROWSER_FILE_SOURCE_PACKAGE_FILE);
+        browserFiles.Push(browserFile);
+        browserFilesToScan.Push(browserFile);
+    }
+}
+
+void ScanResourceDirFiles(String path, uint resourceDirIndex)
+{
+    String fullPath = cache.resourceDirs[resourceDirIndex] + path;
+    if (!fileSystem.DirExists(fullPath))
+        return;
+
+    BrowserDir@ dir = GetBrowserDir(path);
+
+    if (dir is null)
+        return;
+
+    // get files in directory
+    Array<String> dirFiles = fileSystem.ScanDir(fullPath, "*.*", SCAN_FILES, false);
+
+    // add new files
+    for (uint x=0; x < dirFiles.length; x++)
+    {
+        String filename = dirFiles[x].ToLower();
+        BrowserFile@ browserFile = dir.AddFile(filename, resourceDirIndex, BROWSER_FILE_SOURCE_RESOURCE_DIR);
+        browserFiles.Push(browserFile);
+        browserFilesToScan.Push(browserFile);
     }
 }
 
@@ -369,7 +440,7 @@ void HandleResourceBrowserListSelectionChange(StringHash eventType, VariantMap& 
         return;
 
     UIElement@ uiElement = browserDirList.GetItems()[browserDirList.selection];
-    BrowserDir@ dir = GetBrowserDirFromUIElement(uiElement);
+    BrowserDir@ dir = GetBrowserDir(uiElement.vars[TEXT_VAR_DIR_ID].GetString());
     if (dir is null)
         return;
     PopulateResourceBrowserResults(dir);
@@ -386,7 +457,7 @@ void HandleResourceBrowserSearchTextChange(StringHash eventType, VariantMap& eve
     {
         browserDirList.visible = false;
 
-        String query = browserSearch.text;
+        String query = browserSearch.text.ToLower();
 
         Array<int> scores;
         Array<BrowserFile@> scored;
@@ -397,7 +468,7 @@ void HandleResourceBrowserSearchTextChange(StringHash eventType, VariantMap& eve
             {
                 @file = browserFiles[x];
                 file.sortScore = -1;
-                int find = file.fullname.Find(query, 0, false);
+                int find = file.fullname.Find(query, 0, true);
                 if (find > -1)
                 {
                     int fudge = query.length - file.fullname.length;
@@ -432,19 +503,6 @@ void HandleResourceBrowserSearchTextChange(StringHash eventType, VariantMap& eve
     }
 }
 
-BrowserDir@ GetBrowserDirFromId(uint id)
-{
-    if (id == 0)
-        return null;
-    BrowserDir@ dir;
-    for(uint i=0; i<browserDirs.length; i++)
-    {
-        @dir = @browserDirs[i];
-        if (dir.id == id) return dir;
-    }
-    return null;
-}
-
 BrowserFile@ GetBrowserFileFromId(uint id)
 {
     if (id == 0)
@@ -466,13 +524,6 @@ BrowserFile@ GetBrowserFileFromUIElement(UIElement@ element)
     return GetBrowserFileFromId(element.vars[TEXT_VAR_FILE_ID].GetUInt());
 }
 
-BrowserDir@ GetBrowserDirFromUIElement(UIElement@ element)
-{
-    if (element is null || !element.vars.Contains(TEXT_VAR_DIR_ID))
-        return null;
-    return GetBrowserDirFromId(element.vars[TEXT_VAR_DIR_ID].GetUInt());
-}
-
 void HandleBrowserEditResource(StringHash eventType, VariantMap& eventData)
 {
     UIElement@ element = eventData["Element"].GetPtr();
@@ -480,7 +531,7 @@ void HandleBrowserEditResource(StringHash eventType, VariantMap& eventData)
     if (file is null)
         return;
 
-    if (file.resourceType == BROWSER_TYPE_MATERIAL)
+    if (file.resourceType == RESOURCE_TYPE_MATERIAL)
     {
         Material@ material = cache.GetResource("Material", file.resourceKey);
         if (material !is null)
@@ -588,13 +639,15 @@ void HandleBrowserFileDragEnd(StringHash eventType, VariantMap& eventData)
     if (element !is null)
         return;
 
-    if (browserDragFile.resourceType == BROWSER_TYPE_MATERIAL)
+    if (browserDragFile.resourceType == RESOURCE_TYPE_MATERIAL)
     {
         StaticModel@ model = cast<StaticModel>(GetDrawableAtMousePostion());
         if (model !is null)
+        {
             AssignMaterial(model, browserDragFile.resourceKey);
+        }
     }
-    else if (browserDragFile.resourceType == BROWSER_TYPE_PREFAB)
+    else if (browserDragFile.resourceType == RESOURCE_TYPE_PREFAB)
     {
         browserDragNode = LoadNode(browserDragFile.GetFullPath());
         browserDragNode.position = GetMouse3DPosition();
@@ -614,120 +667,360 @@ Menu@ CreateBrowserFileActionMenu(String text, String handler, BrowserFile@ brow
     return menu;
 }
 
+int GetResourceType(String path)
+{
+    ShortStringHash fileType;
+    return GetResourceType(path, fileType);
+}
+
+int GetResourceType(String path, ShortStringHash &out fileType, bool useCache = false)
+{
+    if (GetExtensionType(path, fileType) || GetBinaryType(path, fileType, useCache) || GetXmlType(path, fileType, useCache))
+        return GetResourceType(fileType);
+
+    return RESOURCE_TYPE_UNKNOWN;
+}
+
+
+int GetResourceType(ShortStringHash fileType)
+{
+    // binary fileTypes
+    if (fileType == BINARY_TYPE_SCENE)
+        return RESOURCE_TYPE_SCENE;
+    else if (fileType == BINARY_TYPE_PACKAGE)
+        return RESOURCE_TYPE_UNUSABLE;
+    else if (fileType == BINARY_TYPE_COMPRESSED_PACKAGE)
+        return RESOURCE_TYPE_UNUSABLE;
+    else if (fileType == BINARY_TYPE_ANGLESCRIPT)
+        return RESOURCE_TYPE_SCRIPTFILE;
+    else if (fileType == BINARY_TYPE_MODEL)
+        return RESOURCE_TYPE_MODEL;
+    else if (fileType == BINARY_TYPE_SHADER)
+        return RESOURCE_TYPE_UNUSABLE;
+    else if (fileType == BINARY_TYPE_ANIMATION)
+        return RESOURCE_TYPE_ANIMATION;
+
+    // xml fileTypes
+    else if (fileType == XML_TYPE_SCENE)
+        return RESOURCE_TYPE_SCENE;
+    else if (fileType == XML_TYPE_NODE)
+        return RESOURCE_TYPE_PREFAB;
+    else if(fileType == XML_TYPE_MATERIAL)
+        return RESOURCE_TYPE_MATERIAL;
+    else if(fileType == XML_TYPE_TECHNIQUE)
+        return RESOURCE_TYPE_TECHNIQUE;
+    else if(fileType == XML_TYPE_PARTICLEEMITTER)
+        return RESOURCE_TYPE_PARTICLEEMITTER;
+    else if(fileType == XML_TYPE_TEXTURE)
+        return RESOURCE_TYPE_TEXTURE;
+    else if(fileType == XML_TYPE_ELEMENT)
+        return RESOURCE_TYPE_UIELEMENT;
+    else if(fileType == XML_TYPE_ELEMENTS)
+        return RESOURCE_TYPE_UIELEMENTS;
+    else if (fileType == XML_TYPE_ANIMATION_SETTINGS)
+        return RESOURCE_TYPE_ANIMATION_SETTINGS;
+    else if (fileType == XML_TYPE_RENDERPATH)
+        return RESOURCE_TYPE_RENDERPATH;
+    else if (fileType == XML_TYPE_TEXTURE_ATLAS)
+        return RESOURCE_TYPE_TEXTURE_ATLAS;
+    else if (fileType == XML_TYPE_2D_PARTICLE_EFFECT)
+        return RESOURCE_TYPE_2D_PARTICLE_EFFECT;
+    else if (fileType == XML_TYPE_TEXTURE_3D)
+        return RESOURCE_TYPE_TEXTURE_3D;
+    else if (fileType == XML_TYPE_CUBEMAP)
+        return RESOURCE_TYPE_CUBEMAP;
+
+    // extension fileTypes
+    else if (fileType == EXTENSION_TYPE_TTF)
+        return RESOURCE_TYPE_FONT;
+    else if (fileType == EXTENSION_TYPE_OGG)
+        return RESOURCE_TYPE_SOUND;
+    else if(fileType == EXTENSION_TYPE_WAV)
+        return RESOURCE_TYPE_SOUND;
+    else if(fileType == EXTENSION_TYPE_DDS)
+        return RESOURCE_TYPE_IMAGE;
+    else if(fileType == EXTENSION_TYPE_PNG)
+        return RESOURCE_TYPE_IMAGE;
+    else if(fileType == EXTENSION_TYPE_JPG)
+        return RESOURCE_TYPE_IMAGE;
+    else if(fileType == EXTENSION_TYPE_JPEG)
+        return RESOURCE_TYPE_IMAGE;
+    else if(fileType == EXTENSION_TYPE_TGA)
+        return RESOURCE_TYPE_IMAGE;
+    else if(fileType == EXTENSION_TYPE_OBJ)
+        return RESOURCE_TYPE_UNUSABLE;
+    else if(fileType == EXTENSION_TYPE_FBX)
+        return RESOURCE_TYPE_UNUSABLE;
+    else if(fileType == EXTENSION_TYPE_COLLADA)
+        return RESOURCE_TYPE_UNUSABLE;
+    else if(fileType == EXTENSION_TYPE_BLEND)
+        return RESOURCE_TYPE_UNUSABLE;
+    else if(fileType == EXTENSION_TYPE_ANGELSCRIPT)
+        return RESOURCE_TYPE_SCRIPTFILE;
+    else if(fileType == EXTENSION_TYPE_LUASCRIPT)
+        return RESOURCE_TYPE_SCRIPTFILE;
+    else if(fileType == EXTENSION_TYPE_HLSL)
+        return RESOURCE_TYPE_UNUSABLE;
+    else if(fileType == EXTENSION_TYPE_GLSL)
+        return RESOURCE_TYPE_UNUSABLE;
+    else if(fileType == EXTENSION_TYPE_FRAGMENTSHADER)
+        return RESOURCE_TYPE_UNUSABLE;
+    else if(fileType == EXTENSION_TYPE_VERTEXSHADER)
+        return RESOURCE_TYPE_UNUSABLE;
+    else if(fileType == EXTENSION_TYPE_HTML)
+        return RESOURCE_TYPE_UNUSABLE;
+
+    return RESOURCE_TYPE_UNKNOWN;
+}
+
+bool GetExtensionType(String path, ShortStringHash &out fileType)
+{
+    ShortStringHash type = ShortStringHash(GetExtension(path));
+    if (type == EXTENSION_TYPE_TTF)
+        fileType = EXTENSION_TYPE_TTF;
+    else if (type == EXTENSION_TYPE_OGG)
+        fileType = EXTENSION_TYPE_OGG;
+    else if(type == EXTENSION_TYPE_WAV)
+        fileType = EXTENSION_TYPE_WAV;
+    else if(type == EXTENSION_TYPE_DDS)
+        fileType = EXTENSION_TYPE_DDS;
+    else if(type == EXTENSION_TYPE_PNG)
+        fileType = EXTENSION_TYPE_PNG;
+    else if(type == EXTENSION_TYPE_JPG)
+        fileType = EXTENSION_TYPE_JPG;
+    else if(type == EXTENSION_TYPE_JPEG)
+        fileType = EXTENSION_TYPE_JPEG;
+    else if(type == EXTENSION_TYPE_TGA)
+        fileType = EXTENSION_TYPE_TGA;
+    else if(type == EXTENSION_TYPE_OBJ)
+        fileType = EXTENSION_TYPE_OBJ;
+    else if(type == EXTENSION_TYPE_FBX)
+        fileType = EXTENSION_TYPE_FBX;
+    else if(type == EXTENSION_TYPE_COLLADA)
+        fileType = EXTENSION_TYPE_COLLADA;
+    else if(type == EXTENSION_TYPE_BLEND)
+        fileType = EXTENSION_TYPE_BLEND;
+    else if(type == EXTENSION_TYPE_ANGELSCRIPT)
+        fileType = EXTENSION_TYPE_ANGELSCRIPT;
+    else if(type == EXTENSION_TYPE_LUASCRIPT)
+        fileType = EXTENSION_TYPE_LUASCRIPT;
+    else if(type == EXTENSION_TYPE_HLSL)
+        fileType = EXTENSION_TYPE_HLSL;
+    else if(type == EXTENSION_TYPE_GLSL)
+        fileType = EXTENSION_TYPE_GLSL;
+    else if(type == EXTENSION_TYPE_FRAGMENTSHADER)
+        fileType = EXTENSION_TYPE_FRAGMENTSHADER;
+    else if(type == EXTENSION_TYPE_VERTEXSHADER)
+        fileType = EXTENSION_TYPE_VERTEXSHADER;
+    else if(type == EXTENSION_TYPE_HTML)
+        fileType = EXTENSION_TYPE_HTML;
+    else
+        return false;
+
+    return true;
+}
+
+bool GetBinaryType(String path, ShortStringHash &out fileType, bool useCache = false)
+{   
+    ShortStringHash type;
+    if (useCache)
+    {
+        File@ file = cache.GetFile(path);
+        if (file is null)
+            return false;
+
+        type = ShortStringHash(file.ReadFileID());
+    }
+    else
+    {
+        File@ file = File();
+        if (!file.Open(path))
+            return false;
+
+        type = ShortStringHash(file.ReadFileID());
+    }
+
+    if (type == BINARY_TYPE_SCENE)
+        fileType = BINARY_TYPE_SCENE;
+    else if (type == BINARY_TYPE_PACKAGE)
+        fileType = BINARY_TYPE_PACKAGE;
+    else if (type == BINARY_TYPE_COMPRESSED_PACKAGE)
+        fileType = BINARY_TYPE_COMPRESSED_PACKAGE;
+    else if (type == BINARY_TYPE_ANGLESCRIPT)
+        fileType = BINARY_TYPE_ANGLESCRIPT;
+    else if (type == BINARY_TYPE_MODEL)
+        fileType = BINARY_TYPE_MODEL;
+    else if (type == BINARY_TYPE_SHADER)
+        fileType = BINARY_TYPE_SHADER;
+    else if (type == BINARY_TYPE_ANIMATION)
+        fileType = BINARY_TYPE_ANIMATION;
+    else
+        return false;
+
+    return true;
+}
+
+bool GetXmlType(String path, ShortStringHash &out fileType, bool useCache = false)
+{
+    String name;
+    if (useCache)
+    {
+        XMLFile@ xml = cache.GetResource("XMLFile", path);
+        if (xml is null)
+            return false;
+
+        name = xml.root.name;
+    }
+    else
+    {
+        File@ file = File();
+        if (!file.Open(path))
+            return false;
+
+        XMLFile@ xml = XMLFile();
+        if (xml.Load(file))
+            name = xml.root.name;
+        else 
+            return false;
+    }
+
+    bool found = false;
+    if (!name.empty)
+    {
+        found = true;
+        ShortStringHash type = ShortStringHash(name);
+        if (type == XML_TYPE_SCENE)
+            fileType = XML_TYPE_SCENE;
+        else if (type == XML_TYPE_NODE)
+            fileType = XML_TYPE_NODE;
+        else if(type == XML_TYPE_MATERIAL)
+            fileType = XML_TYPE_MATERIAL;
+        else if(type == XML_TYPE_TECHNIQUE)
+            fileType = XML_TYPE_TECHNIQUE;
+        else if(type == XML_TYPE_PARTICLEEMITTER)
+            fileType = XML_TYPE_PARTICLEEMITTER;
+        else if(type == XML_TYPE_TEXTURE)
+            fileType = XML_TYPE_TEXTURE;
+        else if(type == XML_TYPE_ELEMENT)
+            fileType = XML_TYPE_ELEMENT;
+        else if(type == XML_TYPE_ELEMENTS)
+            fileType = XML_TYPE_ELEMENTS;
+        else if (type == XML_TYPE_ANIMATION_SETTINGS)
+            fileType = XML_TYPE_ANIMATION_SETTINGS;
+        else if (type == XML_TYPE_RENDERPATH)
+            fileType = XML_TYPE_RENDERPATH;
+        else if (type == XML_TYPE_TEXTURE_ATLAS)
+            fileType = XML_TYPE_TEXTURE_ATLAS;
+        else if (type == XML_TYPE_2D_PARTICLE_EFFECT)
+            fileType = XML_TYPE_2D_PARTICLE_EFFECT;
+        else if (type == XML_TYPE_TEXTURE_3D)
+            fileType = XML_TYPE_TEXTURE_3D;
+        else if (type == XML_TYPE_CUBEMAP)
+            fileType = XML_TYPE_CUBEMAP;
+        else
+            found = false;
+    }
+    return found;
+}
+
+String ResourceTypeName(int resourceType)
+{
+    if (resourceType == RESOURCE_TYPE_SCENE)
+        return "Scene";
+    else if (resourceType == RESOURCE_TYPE_SCRIPTFILE)
+        return "Script File";
+    else if (resourceType == RESOURCE_TYPE_MODEL)
+        return "Model";
+    else if (resourceType == RESOURCE_TYPE_MATERIAL)
+        return "Material";
+    else if (resourceType == RESOURCE_TYPE_ANIMATION)
+        return "Animation";
+    else if (resourceType == RESOURCE_TYPE_IMAGE)
+        return "Image";
+    else if (resourceType == RESOURCE_TYPE_SOUND)
+        return "Sound";
+    else if (resourceType == RESOURCE_TYPE_TEXTURE)
+        return "Texture";
+    else if (resourceType == RESOURCE_TYPE_FONT)
+        return "Font";
+    else if (resourceType == RESOURCE_TYPE_PREFAB)
+        return "Prefab";
+    else if (resourceType == RESOURCE_TYPE_TECHNIQUE)
+        return "Render Technique";
+    else if (resourceType == RESOURCE_TYPE_PARTICLEEMITTER)
+        return "Particle Emitter";
+    else if (resourceType == RESOURCE_TYPE_UIELEMENT)
+        return "UI Element";
+    else if (resourceType == RESOURCE_TYPE_UIELEMENTS)
+        return "UI Elements";
+    else if (resourceType == RESOURCE_TYPE_ANIMATION_SETTINGS)
+        return "Animation Settings";
+    else if (resourceType == RESOURCE_TYPE_RENDERPATH)
+        return "Render Path";
+    else if (resourceType == RESOURCE_TYPE_TEXTURE_ATLAS)
+        return "Texture Atlas";
+    else if (resourceType == RESOURCE_TYPE_2D_PARTICLE_EFFECT)
+        return "2D Particle Effect";
+    else if (resourceType == RESOURCE_TYPE_TEXTURE_3D)
+        return "Texture 3D";
+    else if (resourceType == RESOURCE_TYPE_CUBEMAP)
+        return "Cubemap";
+    else
+        return "";
+}
+
 class BrowserDir
 {
     uint id;
-    BrowserDir@ parent;
     String resourceKey;
     String name;
     Array<BrowserDir@> children;
     Array<BrowserFile@> files;
-    int sortScore;
 
-    BrowserDir(String name, BrowserDir@ parent = null)
+    BrowserDir(String path_)
     {
-        @this.parent = parent;
-        this.name = name;
-
-        if (parent is null)
-            resourceKey = name;
-        else
-            resourceKey = parent.resourceKey.empty ? name : parent.resourceKey + "/" + name;
-
+        resourceKey = path_;
+        String parent = GetParentPath(path_);
+        name = path_;
+        name.Replace(parent, "");
         id = browserDirIndex++;
     }
 
     int opCmp(BrowserDir@ b)
     {
-        if (browserSearchSortMode == 1)
-            return name.opCmp(b.name);
-        else
-            return sortScore - b.sortScore;
+        return name.opCmp(b.name);
     }
 
-    BrowserFile@ AddFile(String name, uint resourceDirIndex)
+    BrowserFile@ AddFile(String name, uint resourceSourceIndex, uint sourceType)
     {
-        BrowserFile@ file = BrowserFile(name, this, resourceDirIndex);
+        String path = resourceKey + "/" + name;
+        BrowserFile@ file = BrowserFile(path, resourceSourceIndex, sourceType);
         files.Push(file);
         return file;
-    }
-
-    BrowserDir@ AddDir(String dir)
-    {
-        BrowserDir@ child = BrowserDir(dir, this);
-        children.Push(child);
-        return child;
-    }
-
-    Array<BrowserFile@> GetFilesSorted()
-    {
-        return files;
-    }
-
-    BrowserDir@ GetChild(String name)
-    {
-        BrowserDir@ itr;
-        for(uint x=0; x < children.length; x++)
-        {
-            @itr = children[x];
-            if (itr.name == name) return itr;
-        }
-        return null;
-    }
-
-    void ScanFiles()
-    {
-        files.Clear();
-        for(uint i=0; i<cache.resourceDirs.length; i++)
-            ScanFiles(i);
-    }
-
-    void ScanFiles(uint resourceDirIndex)
-    {
-        String path = cache.resourceDirs[resourceDirIndex] + resourceKey;
-        if (!fileSystem.DirExists(path))
-            return;
-
-        // get files in directory
-        Array<String> dirFiles = fileSystem.ScanDir(path, "*.*", SCAN_FILES, false);
-
-        // add new files
-        for (uint x=0; x < dirFiles.length; x++)
-        {
-            String filepath = dirFiles[x];
-            BrowserFile@ browserFile = AddFile(filepath, resourceDirIndex);
-            browserFiles.Push(browserFile);
-            browserFilesToScan.Push(browserFile);
-        }
     }
 }
 
 class BrowserFile
 {
     uint id;
-    uint resourceDirIndex;
+    uint resourceSourceIndex;
     String resourceKey;
     String name;
     String fullname;
     String extension;
-    ShortStringHash extensionType;
-    ShortStringHash binaryType;
-    ShortStringHash xmlType;
+    ShortStringHash fileType;
     int resourceType = 0;
-    bool isResource = false;
-    bool isBinary = false;
-    bool isXml = false;
-    BrowserDir@ dir;
+    int sourceType = 0;
     int sortScore = 0;
 
-    BrowserFile(String filename, BrowserDir@ dir, uint resourceDirIndex)
+    BrowserFile(String path, uint resourceSourceIndex, int sourceType)
     {
-        @this.dir = dir;
-        this.resourceDirIndex = resourceDirIndex;
-        name = GetFileName(filename);
-        extension = GetExtension(filename);
-        fullname = filename;
-        resourceKey = dir.resourceKey + "/" + fullname;
+        this.sourceType = sourceType;
+        this.resourceSourceIndex = resourceSourceIndex;
+        resourceKey = path;
+        name = GetFileName(path);
+        extension = GetExtension(path);
+        fullname = GetFileNameAndExtension(path);
         id = browserFileIndex++;
     }
 
@@ -739,325 +1032,37 @@ class BrowserFile
             return sortScore - b.sortScore;
     }
 
-    String FriendlyTypeName()
+    String GetResourceSource()
     {
-        if (resourceType == BROWSER_TYPE_SCENE)
-            return "Scene";
-        else if (resourceType == BROWSER_TYPE_SCRIPTFILE)
-            return "Script File";
-        else if (resourceType == BROWSER_TYPE_MODEL)
-            return "Model";
-        else if (resourceType == BROWSER_TYPE_MATERIAL)
-            return "Material";
-        else if (resourceType == BROWSER_TYPE_ANIMATION)
-            return "Animation";
-        else if (resourceType == BROWSER_TYPE_IMAGE)
-            return "Image";
-        else if (resourceType == BROWSER_TYPE_SOUND)
-            return "Sound";
-        else if (resourceType == BROWSER_TYPE_TEXTURE)
-            return "Texture";
-        else if (resourceType == BROWSER_TYPE_FONT)
-            return "Font";
-        else if (resourceType == BROWSER_TYPE_PREFAB)
-            return "Prefab";
-        else if (resourceType == BROWSER_TYPE_TECHNIQUE)
-            return "Render Technique";
-        else if (resourceType == BROWSER_TYPE_PARTICLEEMITTER)
-            return "Particle Emitter";
-        else if (resourceType == BROWSER_TYPE_UIELEMENT)
-            return "UI Element";
-        else if (resourceType == BROWSER_TYPE_UIELEMENTS)
-            return "UI Elements";
-        else if (resourceType == BROWSER_TYPE_ANIMATION_SETTINGS)
-            return "Animation Settings";
-        else if (resourceType == BROWSER_TYPE_RENDERPATH)
-            return "Render Path";
-        else if (resourceType == BROWSER_TYPE_TEXTURE_ATLAS)
-            return "Texture Atlas";
-        else if (resourceType == BROWSER_TYPE_2D_PARTICLE_EFFECT)
-            return "2D Particle Effect";
-        else if (resourceType == BROWSER_TYPE_TEXTURE_3D)
-            return "Texture 3D";
-        else if (resourceType == BROWSER_TYPE_CUBEMAP)
-            return "Cubemap";
+        if (sourceType == BROWSER_FILE_SOURCE_RESOURCE_DIR)
+            return cache.resourceDirs[resourceSourceIndex];
+        else if (sourceType == BROWSER_FILE_SOURCE_PACKAGE_FILE)
+            return cache.packageFiles[resourceSourceIndex].name;
         else
-            return "";
-    }
-
-    void DetermainResourceType()
-    {
-        resourceType = TryToReadExtensionType();
-        if (resourceType != -1) 
-        {
-            if (resourceType > 0)
-                isResource = true;
-            return;
-        }
-
-        resourceType = TryToReadBinaryType();
-        if (resourceType > 0) 
-        {
-            isBinary = true;
-            isResource = true;
-            return;
-        }
-
-        resourceType = TryToReadXMLType();
-        if (resourceType > 0) 
-        {
-            isXml = true;
-            isResource = true;
-            return;
-        }
-
-        resourceType = -1;
+            return "Unknown";
     }
 
     String GetFullPath()
     {
-        return String(cache.resourceDirs[resourceDirIndex] + resourceKey);
+        if (sourceType == BROWSER_FILE_SOURCE_PACKAGE_FILE)
+            return resourceKey;
+
+        return String(cache.resourceDirs[resourceSourceIndex] + resourceKey);
     }
 
     String GetPath()
     {
-        return String(resourceKey);
+        return resourceKey;
     }
 
-    int TryToReadExtensionType()
+    void DetermainResourceType()
     {
-        ShortStringHash type =  ShortStringHash(extension);
-        if (type == EXTENSION_TYPE_TTF)
-        {
-            extensionType = EXTENSION_TYPE_TTF;
-            return BROWSER_TYPE_FONT;
-        }
-        else if (type == EXTENSION_TYPE_OGG)
-        {
-            extensionType = EXTENSION_TYPE_OGG;
-            return BROWSER_TYPE_SOUND;
-        }
-        else if(type == EXTENSION_TYPE_WAV)
-        {
-            extensionType = EXTENSION_TYPE_WAV;
-            return BROWSER_TYPE_SOUND;
-        }
-        else if(type == EXTENSION_TYPE_DDS)
-        {
-            extensionType = EXTENSION_TYPE_DDS;
-            return BROWSER_TYPE_IMAGE;
-        }
-        else if(type == EXTENSION_TYPE_PNG)
-        {
-            extensionType = EXTENSION_TYPE_PNG;
-            return BROWSER_TYPE_IMAGE;
-        }
-        else if(type == EXTENSION_TYPE_JPG)
-        {
-            extensionType = EXTENSION_TYPE_JPG;
-            return BROWSER_TYPE_IMAGE;
-        }
-        else if(type == EXTENSION_TYPE_JPEG)
-        {
-            extensionType = EXTENSION_TYPE_JPEG;
-            return BROWSER_TYPE_IMAGE;
-        }
-        else if(type == EXTENSION_TYPE_TGA)
-        {
-            extensionType = EXTENSION_TYPE_TGA;
-            return BROWSER_TYPE_IMAGE;
-        }
-        else if(type == EXTENSION_TYPE_OBJ)
-        {
-            extensionType = EXTENSION_TYPE_OBJ;
-            return BROWSER_TYPE_UNUSABLE;
-        }
-        else if(type == EXTENSION_TYPE_FBX)
-        {
-            extensionType = EXTENSION_TYPE_FBX;
-            return BROWSER_TYPE_UNUSABLE;
-        }
-        else if(type == EXTENSION_TYPE_COLLADA)
-        {
-            extensionType = EXTENSION_TYPE_COLLADA;
-            return BROWSER_TYPE_UNUSABLE;
-        }
-        else if(type == EXTENSION_TYPE_BLEND)
-        {
-            extensionType = EXTENSION_TYPE_BLEND;
-            return BROWSER_TYPE_UNUSABLE;
-        }
-        else if(type == EXTENSION_TYPE_ANGELSCRIPT)
-        {
-            extensionType = EXTENSION_TYPE_ANGELSCRIPT;
-            return BROWSER_TYPE_SCRIPTFILE;
-        }
-        else if(type == EXTENSION_TYPE_LUASCRIPT)
-        {
-            extensionType = EXTENSION_TYPE_LUASCRIPT;
-            return BROWSER_TYPE_SCRIPTFILE;
-        }
-        else if(type == EXTENSION_TYPE_HLSL)
-        {
-            extensionType = EXTENSION_TYPE_HLSL;
-            return BROWSER_TYPE_UNUSABLE;
-        }
-        else if(type == EXTENSION_TYPE_GLSL)
-        {
-            extensionType = EXTENSION_TYPE_GLSL;
-            return BROWSER_TYPE_UNUSABLE;
-        }
-        else if(type == EXTENSION_TYPE_FRAGMENTSHADER)
-        {
-            extensionType = EXTENSION_TYPE_FRAGMENTSHADER;
-            return BROWSER_TYPE_UNUSABLE;
-        }
-        else if(type == EXTENSION_TYPE_VERTEXSHADER)
-        {
-            extensionType = EXTENSION_TYPE_VERTEXSHADER;
-            return BROWSER_TYPE_UNUSABLE;
-        }
-        else if(type == EXTENSION_TYPE_HTML)
-        {
-            extensionType = EXTENSION_TYPE_HTML;
-            return BROWSER_TYPE_UNUSABLE;
-        }
-        return BROWSER_TYPE_UNKNOWN;
+        resourceType = GetResourceType(GetFullPath(), fileType, sourceType == BROWSER_FILE_SOURCE_PACKAGE_FILE);
     }
-
-    int TryToReadBinaryType()
+    
+    String ResourceTypeName()
     {
-        File@ file = File();
-        if (!file.Open(GetFullPath()))
-            return -1;
-
-        ShortStringHash type = ShortStringHash(file.ReadFileID());
-        file.Close();
-        if (type == BINARY_TYPE_SCENE)
-        {
-            binaryType = BINARY_TYPE_SCENE;
-            return BROWSER_TYPE_SCENE;
-        }
-        else if (type == BINARY_TYPE_PACKAGE)
-        {
-            binaryType = BINARY_TYPE_PACKAGE;
-            return BROWSER_TYPE_UNUSABLE;
-        }
-        else if (type == BINARY_TYPE_COMPRESSED_PACKAGE)
-        {
-            binaryType = BINARY_TYPE_COMPRESSED_PACKAGE;
-            return BROWSER_TYPE_UNUSABLE;
-        }
-        else if (type == BINARY_TYPE_ANGLESCRIPT)
-        {
-            binaryType = BINARY_TYPE_ANGLESCRIPT;
-            return BROWSER_TYPE_SCRIPTFILE;
-        }
-        else if (type == BINARY_TYPE_MODEL)
-        {
-            binaryType = BINARY_TYPE_MODEL;
-            return BROWSER_TYPE_MODEL;
-        }
-        else if (type == BINARY_TYPE_SHADER)
-        {
-            binaryType = BINARY_TYPE_SHADER;
-            return BROWSER_TYPE_UNUSABLE;
-        }
-        else if (type == BINARY_TYPE_ANIMATION)
-        {
-            binaryType = BINARY_TYPE_ANIMATION;
-            return BROWSER_TYPE_ANIMATION;
-        }
-        return -1;
-    }
-
-    int TryToReadXMLType()
-    {
-        XMLFile xml;
-        File@ file = File();
-        if (!file.Open(GetFullPath()))
-            return -1;
-
-        if(xml.Load(file))
-        {
-            String name = xml.root.name;
-            file.Close();
-            if (name.empty) return -1;
-
-            ShortStringHash type = ShortStringHash(name);
-            if (type == XML_TYPE_SCENE)
-            {
-                xmlType = XML_TYPE_SCENE;
-                return BROWSER_TYPE_SCENE;
-            }
-            else if (type == XML_TYPE_NODE)
-            {
-                xmlType = XML_TYPE_NODE;
-                return BROWSER_TYPE_PREFAB;
-            }
-            else if(type == XML_TYPE_MATERIAL)
-            {
-                xmlType = XML_TYPE_MATERIAL;
-                return BROWSER_TYPE_MATERIAL;
-            }
-            else if(type == XML_TYPE_TECHNIQUE)
-            {
-                xmlType = XML_TYPE_TECHNIQUE;
-                return BROWSER_TYPE_TECHNIQUE;
-            }
-            else if(type == XML_TYPE_PARTICLEEMITTER)
-            {
-                xmlType = XML_TYPE_PARTICLEEMITTER;
-                return BROWSER_TYPE_PARTICLEEMITTER;
-            }
-            else if(type == XML_TYPE_TEXTURE)
-            {
-                xmlType = XML_TYPE_TEXTURE;
-                return BROWSER_TYPE_TEXTURE;
-            }
-            else if(type == XML_TYPE_ELEMENT)
-            {
-                xmlType = XML_TYPE_ELEMENT;
-                return BROWSER_TYPE_UIELEMENT;
-            }
-            else if(type == XML_TYPE_ELEMENTS)
-            {
-                xmlType = XML_TYPE_ELEMENTS;
-                return BROWSER_TYPE_UIELEMENTS;
-            }
-            else if (type == XML_TYPE_ANIMATION_SETTINGS)
-            {
-                xmlType = XML_TYPE_ANIMATION_SETTINGS;
-                return BROWSER_TYPE_ANIMATION_SETTINGS;
-            }
-            else if (type == XML_TYPE_RENDERPATH)
-            {
-                xmlType = XML_TYPE_RENDERPATH;
-                return BROWSER_TYPE_RENDERPATH;
-            }
-            else if (type == XML_TYPE_TEXTURE_ATLAS)
-            {
-                xmlType = XML_TYPE_TEXTURE_ATLAS;
-                return BROWSER_TYPE_TEXTURE_ATLAS;
-            }
-            else if (type == XML_TYPE_2D_PARTICLE_EFFECT)
-            {
-                xmlType = XML_TYPE_2D_PARTICLE_EFFECT;
-                return BROWSER_TYPE_2D_PARTICLE_EFFECT;
-            }
-            else if (type == XML_TYPE_TEXTURE_3D)
-            {
-                xmlType = XML_TYPE_TEXTURE_3D;
-                return BROWSER_TYPE_TEXTURE_3D;
-            }
-            else if (type == XML_TYPE_CUBEMAP)
-            {
-                xmlType = XML_TYPE_CUBEMAP;
-                return BROWSER_TYPE_CUBEMAP;
-            }
-            return -1;
-        }
-        file.Close();
-        return -1;
+        return ::ResourceTypeName(resourceType);
     }
 }
+

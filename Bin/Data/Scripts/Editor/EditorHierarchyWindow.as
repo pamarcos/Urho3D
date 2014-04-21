@@ -828,9 +828,9 @@ void HandleDragDropFinish(StringHash eventType, VariantMap& eventData)
         return;
 
     // resource browser
-    if (source !is null && source.GetVar(TEXT_VAR_BROWSER_TYPE).GetInt() > 0)
+    if (source !is null && source.GetVar(TEXT_VAR_RESOURCE_TYPE).GetInt() > 0)
     {
-        int type = source.GetVar(TEXT_VAR_BROWSER_TYPE).GetInt();
+        int type = source.GetVar(TEXT_VAR_RESOURCE_TYPE).GetInt();
 
         BrowserFile@ browserFile = GetBrowserFileFromId(source.vars[TEXT_VAR_FILE_ID].GetUInt());
         if (browserFile is null)
@@ -845,22 +845,22 @@ void HandleDragDropFinish(StringHash eventType, VariantMap& eventData)
 
             // editNode = targetNode;
 
-            if (type == BROWSER_TYPE_PREFAB)
+            if (type == RESOURCE_TYPE_PREFAB)
             {
                 LoadNode(browserFile.GetFullPath(), targetNode);
             }
-            else if(type == BROWSER_TYPE_SCRIPTFILE)
+            else if(type == RESOURCE_TYPE_SCRIPTFILE)
             {
                 // TODO: not sure what to do here.  lots of choices.
             }
-            else if(type == BROWSER_TYPE_MODEL)
+            else if(type == RESOURCE_TYPE_MODEL)
             {
                 CreateModelWithStaticModel(browserFile.resourceKey, targetNode);
                 return;
             }
-            else if (type == BROWSER_TYPE_PARTICLEEMITTER)
+            else if (type == RESOURCE_TYPE_PARTICLEEMITTER)
             {
-                if (browserFile.isXml)
+                if (browserFile.extension == "xml")
                 {
                     XMLFile@ file = cache.GetResource("XMLFile", browserFile.resourceKey);
                     if (file is null)
@@ -871,9 +871,9 @@ void HandleDragDropFinish(StringHash eventType, VariantMap& eventData)
                     createdComponent = emitter;
                 }
             }
-            else if (type == BROWSER_TYPE_2D_PARTICLE_EFFECT)
+            else if (type == RESOURCE_TYPE_2D_PARTICLE_EFFECT)
             {
-                if (browserFile.isXml)
+                if (browserFile.extension == "xml")
                 {
                     ParticleEffect2D@ effect = cache.GetResource("ParticleEffect2D", browserFile.resourceKey);
                     if (effect is null)
@@ -892,7 +892,7 @@ void HandleDragDropFinish(StringHash eventType, VariantMap& eventData)
             if (targetComponent is null)
                 return;
 
-            if (type == BROWSER_TYPE_MATERIAL)
+            if (type == RESOURCE_TYPE_MATERIAL)
             {
                 StaticModel@ model = cast<StaticModel>(targetComponent);
                 if (model is null)
@@ -900,7 +900,7 @@ void HandleDragDropFinish(StringHash eventType, VariantMap& eventData)
 
                 AssignMaterial(model, browserFile.resourceKey);
             }
-            else if (type == BROWSER_TYPE_MODEL)
+            else if (type == RESOURCE_TYPE_MODEL)
             {
                 StaticModel@ staticModel = cast<StaticModel>(targetComponent);
                 if (staticModel is null)
@@ -1100,12 +1100,12 @@ bool TestDragDrop(UIElement@ source, UIElement@ target, int& itemType)
         if (sourceNode is null && targetNode !is null)
         {
             itemType = ITEM_NODE;
-            int type = source.GetVar(TEXT_VAR_BROWSER_TYPE).GetInt();
-            return type == BROWSER_TYPE_PREFAB || 
-                type == BROWSER_TYPE_SCRIPTFILE || 
-                type == BROWSER_TYPE_MODEL || 
-                type == BROWSER_TYPE_PARTICLEEMITTER ||
-                type == BROWSER_TYPE_2D_PARTICLE_EFFECT;
+            int type = source.GetVar(TEXT_VAR_RESOURCE_TYPE).GetInt();
+            return type == RESOURCE_TYPE_PREFAB || 
+                type == RESOURCE_TYPE_SCRIPTFILE || 
+                type == RESOURCE_TYPE_MODEL || 
+                type == RESOURCE_TYPE_PARTICLEEMITTER ||
+                type == RESOURCE_TYPE_2D_PARTICLE_EFFECT;
         }
 
         return true;
@@ -1152,26 +1152,26 @@ bool TestDragDrop(UIElement@ source, UIElement@ target, int& itemType)
             return true;
 
         // resource browser
-        int type = source.GetVar(TEXT_VAR_BROWSER_TYPE).GetInt();
+        int type = source.GetVar(TEXT_VAR_RESOURCE_TYPE).GetInt();
         if (targetComponent.type == STATICMODEL_TYPE || targetComponent.type == ANIMATEDMODEL_TYPE)
-            return type == BROWSER_TYPE_MATERIAL || type == BROWSER_TYPE_MODEL;
+            return type == RESOURCE_TYPE_MATERIAL || type == RESOURCE_TYPE_MODEL;
 
         return false;
     }
-    else if (source.vars.Contains(TEXT_VAR_BROWSER_TYPE)) // only testing resource browser ui elements
+    else if (source.vars.Contains(TEXT_VAR_RESOURCE_TYPE)) // only testing resource browser ui elements
     {
-        int type = source.GetVar(TEXT_VAR_BROWSER_TYPE).GetInt();
+        int type = source.GetVar(TEXT_VAR_RESOURCE_TYPE).GetInt();
 
         // test against resource pickers
         LineEdit@ lineEdit = cast<LineEdit>(target);
         if (lineEdit !is null)
         {
             ShortStringHash resourceType = GetResourceTypeFromPickerLineEdit(lineEdit);
-            if (resourceType == ShortStringHash("Material") && type == BROWSER_TYPE_MATERIAL)
+            if (resourceType == ShortStringHash("Material") && type == RESOURCE_TYPE_MATERIAL)
                 return true;
-            else if (resourceType == ShortStringHash("Model") && type == BROWSER_TYPE_MODEL)
+            else if (resourceType == ShortStringHash("Model") && type == RESOURCE_TYPE_MODEL)
                 return true;
-            else if (resourceType == ShortStringHash("Animation") && type == BROWSER_TYPE_ANIMATION)
+            else if (resourceType == ShortStringHash("Animation") && type == RESOURCE_TYPE_ANIMATION)
                 return true;
         }
     }
