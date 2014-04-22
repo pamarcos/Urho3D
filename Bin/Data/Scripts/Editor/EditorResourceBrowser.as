@@ -5,7 +5,12 @@ LineEdit@ browserSearch;
 BrowserFile@ browserDragFile;
 Node@ browserDragNode;
 Component@ browserDragComponent;
-bool browserActionMenuWaitFrame = false;
+View3D@ resourceBrowserPreview;
+Scene@ resourcePreviewScene;
+Node@ resourcePreviewNode;
+Node@ resourcePreviewCameraNode;
+Node@ resourcePreviewLightNode;
+Light@ resourcePreviewLight;
 int browserSearchSortMode = 0;
 
 BrowserDir@ rootDir;
@@ -104,6 +109,7 @@ void CreateResourceBrowser()
     if (browserWindow !is null) return;
 
     CreateResourceBrowserUI();
+    InitResourceBrowserPreview();
     ScanResourceDirectories();
     PopulateBrowserDirectories();
     PopulateResourceBrowserResults(rootDir);
@@ -121,9 +127,6 @@ void ScanResourceDirectories()
     // collect all of the items and sort them afterwards
     for(uint i=0; i < cache.resourceDirs.length; i++)
         ScanResourceDir(i);
-
-    for(uint i=0; i < cache.packageFiles.length; i++)
-        ScanPackageFile(rootDir, i);
 }
 
 // used to stop ui from blocking while determining file types
@@ -167,7 +170,7 @@ void CreateResourceBrowserUI()
     browserWindow.opacity = uiMaxOpacity;
 
     int height = Min(ui.root.height * .25, 300);
-    browserWindow.SetSize(500, height);
+    browserWindow.SetSize(900, height);
     browserWindow.SetPosition(35, ui.root.height - height - 25);
 
     CloseContextMenu();
@@ -175,9 +178,10 @@ void CreateResourceBrowserUI()
 
     SubscribeToEvent(browserWindow.GetChild("CloseButton", true), "Released", "HideResourceBrowserWindow");
     SubscribeToEvent(browserWindow.GetChild("RescanButton", true), "Released", "HandleRescanResourceBrowserClick");
-    SubscribeToEvent(browserDirList, "SelectionChanged", "HandleResourceBrowserListSelectionChange");
+    SubscribeToEvent(browserDirList, "SelectionChanged", "HandleResourceBrowserDirListSelectionChange");
     SubscribeToEvent(browserSearch, "TextChanged", "HandleResourceBrowserSearchTextChange");
     SubscribeToEvent(browserFileList, "ItemClicked", "HandleBrowserFileClick");
+    SubscribeToEvent(browserFileList, "SelectionChanged", "HandleResourceBrowserFileListSelectionChange");
 }
 
 void CreateDirList(BrowserDir@ dir, UIElement@ parentUI = null)
@@ -185,7 +189,7 @@ void CreateDirList(BrowserDir@ dir, UIElement@ parentUI = null)
     Text@ dirText = Text();
     browserDirList.InsertItem(browserDirList.numItems, dirText, parentUI);
     dirText.style = "FileSelectorListText";
-    dirText.text = dir.resourceKey.empty ? "root" : dir.name;
+    dirText.text = dir.resourceKey.empty ? "Root" : dir.name;
     dirText.name = dir.resourceKey;
     dirText.vars[TEXT_VAR_DIR_ID] = dir.resourceKey;
 
@@ -234,6 +238,42 @@ void CreateFileList(BrowserFile@ file)
         SubscribeToEvent(fileText, "DragBegin", "HandleBrowserFileDragBegin");
         SubscribeToEvent(fileText, "DragEnd", "HandleBrowserFileDragEnd");
     }
+}
+
+void InitResourceBrowserPreview()
+{
+    resourcePreviewScene = Scene("PreviewScene");
+    resourcePreviewScene.CreateComponent("Octree");
+
+    Node@ zoneNode = resourcePreviewScene.CreateChild("Zone");
+    Zone@ zone = zoneNode.CreateComponent("Zone");
+    zone.boundingBox = BoundingBox(-1000, 1000);
+    zone.ambientColor = Color(0.15, 0.15, 0.15);
+    zone.fogColor = Color(0, 0, 0);
+    zone.fogStart = 10.0;
+    zone.fogEnd = 100.0;
+
+    resourcePreviewCameraNode = resourcePreviewScene.CreateChild("PreviewCamera");
+    resourcePreviewCameraNode.position = Vector3(0, 0, -1.5);
+    Camera@ camera = resourcePreviewCameraNode.CreateComponent("Camera");
+    camera.nearClip = 0.1f;
+    camera.farClip = 100.0f;
+
+    resourcePreviewLightNode = resourcePreviewScene.CreateChild("PreviewLight");
+    resourcePreviewLightNode.direction = Vector3(0.5, -0.5, 0.5);
+    resourcePreviewLight = resourcePreviewLightNode.CreateComponent("Light");
+    resourcePreviewLight.lightType = LIGHT_DIRECTIONAL;
+    resourcePreviewLight.specularIntensity = 0.5;
+
+    resourceBrowserPreview = browserWindow.GetChild("ResourceBrowserPreview", true);
+    resourceBrowserPreview.SetFixedHeight(200);
+    resourceBrowserPreview.SetFixedWidth(266);
+    resourceBrowserPreview.SetView(resourcePreviewScene, camera);
+    resourceBrowserPreview.autoUpdate = false;
+
+    SubscribeToEvent(resourceBrowserPreview, "DragMove", "RotateResourceBrowserPreview");
+
+    RefreshBrowserPreview();
 }
 
 // Opens a contextual menu based on what resource item was actioned
@@ -332,28 +372,12 @@ void ScanResourceDir(uint resourceDirIndex)
     Array<String> dirs = fileSystem.ScanDir(resourceDir, "*", SCAN_DIRS, true);
     for (uint i=0; i < dirs.length; i++)
     {
-        String path = dirs[i].ToLower();
+        String path = dirs[i];
         if (path.EndsWith("."))
             continue;
 
         InitBrowserDir(path);
         ScanResourceDirFiles(path, resourceDirIndex);
-    }
-}
-
-void ScanPackageFile(BrowserDir@ dir, uint packageFileIndex)
-{
-    PackageFile@ packageFile = cache.packageFiles[packageFileIndex];
-    Dictionary dirs;
-    Array<String> entries = packageFile.GetEntryNames();
-    for(uint i=0; i < entries.length; i++)
-    {
-        String file = GetFileNameAndExtension(entries[i]);
-        String folder = GetPath(entries[i]);
-        BrowserDir@ browserDir = InitBrowserDir(folder);
-        BrowserFile@ browserFile = browserDir.AddFile(file, packageFileIndex, BROWSER_FILE_SOURCE_PACKAGE_FILE);
-        browserFiles.Push(browserFile);
-        browserFilesToScan.Push(browserFile);
     }
 }
 
@@ -374,7 +398,7 @@ void ScanResourceDirFiles(String path, uint resourceDirIndex)
     // add new files
     for (uint x=0; x < dirFiles.length; x++)
     {
-        String filename = dirFiles[x].ToLower();
+        String filename = dirFiles[x];
         BrowserFile@ browserFile = dir.AddFile(filename, resourceDirIndex, BROWSER_FILE_SOURCE_RESOURCE_DIR);
         browserFiles.Push(browserFile);
         browserFilesToScan.Push(browserFile);
@@ -434,7 +458,7 @@ void HandleRescanResourceBrowserClick(StringHash eventType, VariantMap& eventDat
     PopulateResourceBrowserResults(rootDir);
 }
 
-void HandleResourceBrowserListSelectionChange(StringHash eventType, VariantMap& eventData)
+void HandleResourceBrowserDirListSelectionChange(StringHash eventType, VariantMap& eventData)
 {
     if (browserDirList.selection == M_MAX_UNSIGNED)
         return;
@@ -444,6 +468,29 @@ void HandleResourceBrowserListSelectionChange(StringHash eventType, VariantMap& 
     if (dir is null)
         return;
     PopulateResourceBrowserResults(dir);
+}
+
+void HandleResourceBrowserFileListSelectionChange(StringHash eventType, VariantMap& eventData)
+{
+    if (browserFileList.selection == M_MAX_UNSIGNED)
+        return;
+
+    UIElement@ uiElement = browserFileList.GetItems()[browserFileList.selection];
+    BrowserFile@ file = GetBrowserFileFromUIElement(uiElement);
+    if (file is null)
+        return;
+
+    if (resourcePreviewNode !is null)
+        resourcePreviewNode.Remove();
+
+    resourcePreviewNode = resourcePreviewScene.CreateChild("PreviewNodeContainer");
+    CreateResourcePreview(file.GetFullPath(), resourcePreviewNode);
+
+    if (resourcePreviewNode !is null)
+    {
+        resourcePreviewScene.AddChild(resourcePreviewNode);
+        RefreshBrowserPreview();
+    }
 }
 
 void HandleResourceBrowserSearchTextChange(StringHash eventType, VariantMap& eventData)
@@ -457,7 +504,7 @@ void HandleResourceBrowserSearchTextChange(StringHash eventType, VariantMap& eve
     {
         browserDirList.visible = false;
 
-        String query = browserSearch.text.ToLower();
+        String query = browserSearch.text;
 
         Array<int> scores;
         Array<BrowserFile@> scored;
@@ -468,7 +515,7 @@ void HandleResourceBrowserSearchTextChange(StringHash eventType, VariantMap& eve
             {
                 @file = browserFiles[x];
                 file.sortScore = -1;
-                int find = file.fullname.Find(query, 0, true);
+                int find = file.fullname.Find(query, 0, false);
                 if (find > -1)
                 {
                     int fudge = query.length - file.fullname.length;
@@ -1064,5 +1111,72 @@ class BrowserFile
     {
         return ::ResourceTypeName(resourceType);
     }
+}
+
+void CreateResourcePreview(String path, Node@ previewNode)
+{
+    int resourceType = GetResourceType(path); 
+    if (resourceType <= 0)
+        return;
+
+    File file;
+    file.Open(path);
+
+    if (resourceType == RESOURCE_TYPE_MODEL)
+    {
+        Model@ model = Model();
+        model.Load(file);
+        if (model is null)
+            return;
+
+        StaticModel@ staticModel = previewNode.CreateComponent("StaticModel");
+        staticModel.model = model;
+    }
+    else if (resourceType == RESOURCE_TYPE_MATERIAL)
+    {
+        Material@ material = Material();
+        material.Load(file);
+        if (material is null)
+            return;
+
+        StaticModel@ staticModel = previewNode.CreateComponent("StaticModel");
+        staticModel.model = cache.GetResource("Model", "Models/Sphere.mdl");
+        staticModel.material = material;
+    }
+    else if (resourceType == RESOURCE_TYPE_IMAGE)
+    {
+        Image@ image = Image();
+        if (!image.Load(file))
+            return;
+
+        StaticModel@ staticModel = previewNode.CreateComponent("StaticModel");
+        staticModel.model = cache.GetResource("Model", "Models/Editor/ImagePlane.mdl");
+        Material@ material =  cache.GetResource("Material", "Materials/Editor/TexturedUnlit.xml");
+        Texture2D@ texture = Texture2D();
+        texture.Load(@image, true);
+        material.textures[0] = texture;
+        staticModel.material = material;
+    }
+    return;
+}
+
+void RotateResourceBrowserPreview(StringHash eventType, VariantMap& eventData)
+{
+    int elemX = eventData["ElementX"].GetInt();
+    int elemY = eventData["ElementY"].GetInt();
+    
+    if (resourceBrowserPreview.height > 0 && resourceBrowserPreview.width > 0)
+    {
+        float yaw = ((resourceBrowserPreview.height / 2) - elemY) * (90.0 / resourceBrowserPreview.height);
+        float pitch = ((resourceBrowserPreview.width / 2) - elemX) * (90.0 / resourceBrowserPreview.width);
+
+        resourcePreviewNode.rotation = resourcePreviewNode.rotation.Slerp(Quaternion(yaw, pitch, 0), 0.1);
+        RefreshBrowserPreview();
+    }
+}
+
+void RefreshBrowserPreview()
+{
+    resourceBrowserPreview.QueueUpdate();
 }
 

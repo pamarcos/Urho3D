@@ -2,7 +2,7 @@
 <element type="Window">
 	<attribute name="Name" value="Resource Browser" />
 	<attribute name="Position" value="400 200" />
-	<attribute name="Size" value="772 60" />
+	<attribute name="Size" value="758 260" />
 	<attribute name="Layout Mode" value="Vertical" />
 	<attribute name="Layout Spacing" value="4" />
 	<attribute name="Layout Border" value="6 6 6 6" />
@@ -55,11 +55,74 @@
 			<attribute name="Name" value="DirectoryList" />
 			<attribute name="Max Size" value="400 2147483647" />
 			<attribute name="Highlight Mode" value="Always" />
+			<element type="ScrollBar" internal="true" style="none">
+				<attribute name="Size" value="230 16" />
+				<element type="Button" internal="true" style="none" />
+				<element type="Slider" internal="true" style="none">
+					<attribute name="Position" value="16 0" />
+					<attribute name="Size" value="198 16" />
+					<element type="BorderImage" internal="true" style="none" />
+				</element>
+				<element type="Button" internal="true" style="none">
+					<attribute name="Position" value="214 0" />
+				</element>
+			</element>
+			<element type="ScrollBar" internal="true" style="none">
+				<attribute name="Size" value="16 200" />
+				<element type="Button" internal="true" style="none" />
+				<element type="Slider" internal="true" style="none">
+					<attribute name="Position" value="0 16" />
+					<attribute name="Size" value="16 168" />
+					<element type="BorderImage" internal="true" style="none" />
+				</element>
+				<element type="Button" internal="true" style="none">
+					<attribute name="Position" value="0 184" />
+				</element>
+			</element>
+			<element type="BorderImage" internal="true" style="none">
+				<element type="HierarchyContainer" internal="true" style="HierarchyContainer" />
+			</element>
+			<element internal="true" style="none" />
 		</element>
 		<element type="ListView" style="PanelView">
 			<attribute name="Name" value="FileList" />
+			<attribute name="Min Size" value="0 200" />
 			<attribute name="Max Size" value="1200 1000" />
 			<attribute name="Indent Spacing" value="0" />
+			<element type="ScrollBar" internal="true" style="none">
+				<attribute name="Size" value="230 16" />
+				<element type="Button" internal="true" style="none" />
+				<element type="Slider" internal="true" style="none">
+					<attribute name="Position" value="16 0" />
+					<attribute name="Size" value="198 16" />
+					<element type="BorderImage" internal="true" style="none" />
+				</element>
+				<element type="Button" internal="true" style="none">
+					<attribute name="Position" value="214 0" />
+				</element>
+			</element>
+			<element type="ScrollBar" internal="true" style="none">
+				<attribute name="Size" value="16 200" />
+				<element type="Button" internal="true" style="none" />
+				<element type="Slider" internal="true" style="none">
+					<attribute name="Position" value="0 16" />
+					<attribute name="Size" value="16 168" />
+					<element type="BorderImage" internal="true" style="none" />
+				</element>
+				<element type="Button" internal="true" style="none">
+					<attribute name="Position" value="0 184" />
+				</element>
+			</element>
+			<element type="BorderImage" internal="true" style="none">
+				<element internal="true" style="none" />
+			</element>
+		</element>
+		<element>
+			<attribute name="Min Size" value="266 200" />
+			<attribute name="Max Size" value="266 200" />
+			<element type="View3D" style="View3D">
+				<attribute name="Name" value="ResourceBrowserPreview" />
+			</element>
 		</element>
 	</element>
 	<element>
