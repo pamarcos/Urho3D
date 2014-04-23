@@ -491,6 +491,28 @@ void HandleResourceBrowserFileListSelectionChange(StringHash eventType, VariantM
 
     if (resourcePreviewNode !is null)
     {
+        Array<BoundingBox> boxes;
+        Array<Component@> staticModels = resourcePreviewNode.GetComponents("StaticModel", true);
+        Array<Component@> animatedModels = resourcePreviewNode.GetComponents("AnimatedModel", true);
+
+        for (uint i = 0; i < staticModels.length; ++i)
+            boxes.Push(cast<StaticModel>(staticModels[i]).worldBoundingBox);
+
+        for (uint i = 0; i < animatedModels.length; ++i)
+            boxes.Push(cast<AnimatedModel>(animatedModels[i]).worldBoundingBox);
+
+        if (boxes.length > 0)
+        {
+            Vector3 camPosition = Vector3(0.0, 0.0, -1.2);
+            BoundingBox biggestBox = boxes[0];
+            for (uint i = 1; i < boxes.length; ++i)
+            {
+                if (boxes[i].size.length > biggestBox.size.length)
+                    biggestBox = boxes[i];
+            }
+            resourcePreviewCameraNode.position = biggestBox.center + camPosition * biggestBox.size.length;
+        }
+
         resourcePreviewScene.AddChild(resourcePreviewNode);
         RefreshBrowserPreview();
     }
@@ -1166,10 +1188,12 @@ void CreateResourcePreview(String path, Node@ previewNode)
             {
                 XMLFile xmlFile;
                 if(xmlFile.Load(file))
-                    if(previewNode.LoadXML(xmlFile.root, true))
+                    if(previewNode.LoadXML(xmlFile.root, true) && (previewNode.GetComponents("StaticModel", true).length > 0 || previewNode.GetComponents("AnimatedModel", true).length > 0))
+                    {
                         return;
+                    }
             }
-            else if(previewNode.Load(file, true))
+            else if(previewNode.Load(file, true) && (previewNode.GetComponents("StaticModel", true).length > 0 || previewNode.GetComponents("AnimatedModel", true).length > 0))
                 return;
 
             previewNode.RemoveAllChildren();
