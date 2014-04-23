@@ -244,6 +244,9 @@ void InitResourceBrowserPreview()
 {
     resourcePreviewScene = Scene("PreviewScene");
     resourcePreviewScene.CreateComponent("Octree");
+    PhysicsWorld@ physicsWorld = resourcePreviewScene.CreateComponent("PhysicsWorld");
+    physicsWorld.enabled = false;
+    physicsWorld.gravity = Vector3(0.0, 0.0, 0.0);
 
     Node@ zoneNode = resourcePreviewScene.CreateChild("Zone");
     Zone@ zone = zoneNode.CreateComponent("Zone");
@@ -1116,47 +1119,73 @@ class BrowserFile
 void CreateResourcePreview(String path, Node@ previewNode)
 {
     int resourceType = GetResourceType(path); 
-    if (resourceType <= 0)
-        return;
-
-    File file;
-    file.Open(path);
-
-    if (resourceType == RESOURCE_TYPE_MODEL)
+    if (resourceType > 0)
     {
-        Model@ model = Model();
-        model.Load(file);
-        if (model is null)
-            return;
+        File file;
+        file.Open(path);
 
-        StaticModel@ staticModel = previewNode.CreateComponent("StaticModel");
-        staticModel.model = model;
-    }
-    else if (resourceType == RESOURCE_TYPE_MATERIAL)
-    {
-        Material@ material = Material();
-        material.Load(file);
-        if (material is null)
-            return;
+        if (resourceType == RESOURCE_TYPE_MODEL)
+        {
+            Model@ model = Model();
+            if (model.Load(file))
+            {
+                StaticModel@ staticModel = previewNode.CreateComponent("StaticModel");
+                staticModel.model = model;
+                return;
+            }
+        }
+        else if (resourceType == RESOURCE_TYPE_MATERIAL)
+        {
+            Material@ material = Material();
+            if (material.Load(file))
+            {
+                StaticModel@ staticModel = previewNode.CreateComponent("StaticModel");
+                staticModel.model = cache.GetResource("Model", "Models/Sphere.mdl");
+                staticModel.material = material;
+                return;
+            }
+        }
+        else if (resourceType == RESOURCE_TYPE_IMAGE)
+        {
+            Image@ image = Image();
+            if (image.Load(file))
+            {
+                StaticModel@ staticModel = previewNode.CreateComponent("StaticModel");
+                staticModel.model = cache.GetResource("Model", "Models/Editor/ImagePlane.mdl");
+                Material@ material =  cache.GetResource("Material", "Materials/Editor/TexturedUnlit.xml");
+                Texture2D@ texture = Texture2D();
+                texture.Load(@image, true);
+                material.textures[0] = texture;
+                staticModel.material = material;
+                return;
+            }
+        }
+        else if (resourceType == RESOURCE_TYPE_PREFAB)
+        {
+            if (GetExtension(path) == ".xml")
+            {
+                XMLFile xmlFile;
+                if(xmlFile.Load(file))
+                    if(previewNode.LoadXML(xmlFile.root, true))
+                        return;
+            }
+            else if(previewNode.Load(file, true))
+                return;
 
-        StaticModel@ staticModel = previewNode.CreateComponent("StaticModel");
-        staticModel.model = cache.GetResource("Model", "Models/Sphere.mdl");
-        staticModel.material = material;
+            previewNode.RemoveAllChildren();
+            previewNode.RemoveAllComponents();
+        }
     }
-    else if (resourceType == RESOURCE_TYPE_IMAGE)
-    {
-        Image@ image = Image();
-        if (!image.Load(file))
-            return;
 
-        StaticModel@ staticModel = previewNode.CreateComponent("StaticModel");
-        staticModel.model = cache.GetResource("Model", "Models/Editor/ImagePlane.mdl");
-        Material@ material =  cache.GetResource("Material", "Materials/Editor/TexturedUnlit.xml");
-        Texture2D@ texture = Texture2D();
-        texture.Load(@image, true);
-        material.textures[0] = texture;
-        staticModel.material = material;
-    }
+    StaticModel@ staticModel = previewNode.CreateComponent("StaticModel");
+    staticModel.model = cache.GetResource("Model", "Models/Editor/ImagePlane.mdl");
+    Material@ material =  cache.GetResource("Material", "Materials/Editor/TexturedUnlit.xml");
+    Texture2D@ texture = Texture2D();
+    Image@ noPreviewImage = cache.GetResource("Image", "Textures/Editor/NoPreviewAvailable.png");
+    texture.Load(noPreviewImage, false);
+    material.textures[0] = texture;
+    staticModel.material = material;
+
     return;
 }
 
