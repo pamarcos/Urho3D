@@ -1,4 +1,5 @@
 UIElement@ browserWindow;
+Window@ browserFilterWindow;
 ListView@ browserDirList;
 ListView@ browserFileList;
 LineEdit@ browserSearch;
@@ -16,6 +17,7 @@ int browserSearchSortMode = 0;
 BrowserDir@ rootDir;
 Array<BrowserFile@> browserFiles;
 Dictionary browserDirs;
+Array<int> activeResourceFilters;
 
 Array<BrowserFile@> browserFilesToScan;
 const uint BROWSER_WORKER_ITEMS_PER_TICK = 10;
@@ -103,6 +105,7 @@ BrowserDir@ selectedBrowserDirectory;
 BrowserFile@ selectedBrowserFile;
 Text@ browserStatusMessage;
 Text@ browserResultsMessage;
+bool ignoreRefreshBrowserResults = false;
 
 void CreateResourceBrowser()
 {
@@ -112,7 +115,7 @@ void CreateResourceBrowser()
     InitResourceBrowserPreview();
     ScanResourceDirectories();
     PopulateBrowserDirectories();
-    PopulateResourceBrowserResults(rootDir);
+    PopulateResourceBrowserFilesByDirectory(rootDir);
 }
 
 void ScanResourceDirectories()
@@ -166,8 +169,46 @@ void CreateResourceBrowserUI()
     browserSearch = browserWindow.GetChild("Search", true);
     browserStatusMessage = browserWindow.GetChild("StatusMessage", true);
     browserResultsMessage = browserWindow.GetChild("ResultsMessage", true);
-    browserWindow.visible = false;
+    // browserWindow.visible = false;
     browserWindow.opacity = uiMaxOpacity;
+
+    browserFilterWindow = ui.LoadLayout(cache.GetResource("XMLFile", "UI/EditorResourceFilterWindow.xml"));
+    {
+        UIElement@ options = browserFilterWindow.GetChild("Options", true);
+        CheckBox@ toggleAll = browserFilterWindow.GetChild("ToggleAll", true);
+        SubscribeToEvent(toggleAll, "Toggled", "HandleResourceFilterToggleAllToggled");
+        SubscribeToEvent(browserFilterWindow.GetChild("CloseButton", true), "Released", "HideResourceFilterWindow");
+
+        UIElement@ col1 = browserFilterWindow.GetChild("FilterColumn1", true);
+        UIElement@ col2 = browserFilterWindow.GetChild("FilterColumn2", true);
+        for (int i=-2; i < 21; i++)
+        {
+            if (i == RESOURCE_TYPE_NOTSET)
+                continue;
+
+            UIElement@ resourceTypeHolder = UIElement();
+            if (i < 10)
+                col1.AddChild(resourceTypeHolder);
+            else
+                col2.AddChild(resourceTypeHolder);
+            resourceTypeHolder.layoutMode = LM_HORIZONTAL;
+            resourceTypeHolder.layoutSpacing = 4;
+
+            Text@ label = Text();
+            label.style = "FileSelectorListText";
+            label.text = ResourceTypeName(i);
+            CheckBox@ checkbox = CheckBox();
+            checkbox.name = i;
+            checkbox.SetStyleAuto();
+            checkbox.vars[TEXT_VAR_RESOURCE_TYPE] = i;
+            checkbox.checked = true;
+            SubscribeToEvent(checkbox, "Toggled", "HandleResourceFilterToggled");
+
+            resourceTypeHolder.AddChild(checkbox);
+            resourceTypeHolder.AddChild(label);
+        }
+    }
+    HideResourceFilterWindow();
 
     int height = Min(ui.root.height * .25, 300);
     browserWindow.SetSize(900, height);
@@ -175,9 +216,11 @@ void CreateResourceBrowserUI()
 
     CloseContextMenu();
     ui.root.AddChild(browserWindow);
+    ui.root.AddChild(browserFilterWindow);
 
     SubscribeToEvent(browserWindow.GetChild("CloseButton", true), "Released", "HideResourceBrowserWindow");
     SubscribeToEvent(browserWindow.GetChild("RescanButton", true), "Released", "HandleRescanResourceBrowserClick");
+    SubscribeToEvent(browserWindow.GetChild("FilterButton", true), "Released", "ToggleResourceFilterWindow");
     SubscribeToEvent(browserDirList, "SelectionChanged", "HandleResourceBrowserDirListSelectionChange");
     SubscribeToEvent(browserSearch, "TextChanged", "HandleResourceBrowserSearchTextChange");
     SubscribeToEvent(browserFileList, "ItemClicked", "HandleBrowserFileClick");
@@ -273,6 +316,8 @@ void InitResourceBrowserPreview()
     resourceBrowserPreview.SetFixedWidth(266);
     resourceBrowserPreview.SetView(resourcePreviewScene, camera);
     resourceBrowserPreview.autoUpdate = false;
+
+    resourcePreviewNode = resourcePreviewScene.CreateChild("PreviewNodeContainer");
 
     SubscribeToEvent(resourceBrowserPreview, "DragMove", "RotateResourceBrowserPreview");
 
@@ -421,6 +466,27 @@ bool ShowResourceBrowserWindow()
     return true;
 }
 
+void ToggleResourceFilterWindow()
+{
+    if (browserFilterWindow.visible)
+        HideResourceFilterWindow();
+    else
+        ShowResourceFilterWindow();
+}
+void HideResourceFilterWindow()
+{
+    browserFilterWindow.visible = false;
+}
+
+void ShowResourceFilterWindow()
+{
+    int x = browserWindow.position.x + browserWindow.width - browserFilterWindow.width;
+    int y = browserWindow.position.y - browserFilterWindow.height - 1;
+    browserFilterWindow.position = IntVector2(x,y);
+    browserFilterWindow.visible = true;
+    browserFilterWindow.BringToFront();
+}
+
 void PopulateBrowserDirectories()
 {
     browserDirList.RemoveAllItems();
@@ -428,37 +494,141 @@ void PopulateBrowserDirectories()
     browserDirList.selection = 0;
 }
 
-void PopulateResourceBrowserResults(BrowserDir@ dir)
+void PopulateResourceBrowserFilesByDirectory(BrowserDir@ dir)
 {
     @selectedBrowserDirectory = dir;
     browserFileList.RemoveAllItems();
     if (dir is null) return;
 
-    Array<String> filenames;
+    Array<BrowserFile@> files;
     for(uint x=0; x < dir.files.length; x++)
-        filenames.Push(dir.files[x].fullname);
+    {
+        BrowserFile@ file = dir.files[x];
+        int find = activeResourceFilters.Find(file.resourceType);
+        if (find == -1)
+            files.Push(file);
+    }
 
     // Sort alphetically
     browserSearchSortMode = BROWSER_SORT_MODE_ALPHA;
-    dir.files.Sort();
-    PopulateResourceBrowserResults(dir.files);
-    browserResultsMessage.text = "Showing " + dir.files.length + " files";
+    files.Sort();
+    PopulateResourceBrowserResults(files);
+    browserResultsMessage.text = "Showing " + files.length + " files";
+}
+
+
+void PopulateResourceBrowserBySearch()
+{
+    String query = browserSearch.text;
+
+    Array<int> scores;
+    Array<BrowserFile@> scored;
+    Array<BrowserFile@> filtered;
+    {
+        BrowserFile@ file;
+        for(uint x=0; x < browserFiles.length; x++)
+        {
+            @file = browserFiles[x];
+            file.sortScore = -1;
+            if (activeResourceFilters.Find(file.resourceType) > -1)
+                continue;
+
+            int find = file.fullname.Find(query, 0, false);
+            if (find > -1)
+            {
+                int fudge = query.length - file.fullname.length;
+                int score = find * Abs(fudge*2) + Abs(fudge);
+                file.sortScore = score;
+                scored.Push(file);
+                scores.Push(score);
+            }
+        }
+    }
+
+    // cut this down for a faster sort
+    if (scored.length > BROWSER_SEARCH_LIMIT)
+    {
+        scores.Sort();
+        int scoreThreshold = scores[BROWSER_SEARCH_LIMIT];
+        BrowserFile@ file;
+        for(uint x=0;x<scored.length;x++)
+        {
+            file = scored[x];
+            if (file.sortScore <= scoreThreshold)
+                filtered.Push(file);
+        }
+    }
+    else
+        filtered = scored;
+
+    browserSearchSortMode = BROWSER_SORT_MODE_ALPHA;
+    filtered.Sort();
+    PopulateResourceBrowserResults(filtered);
+    browserResultsMessage.text = "Showing top " + filtered.length + " of " + scored.length + " results";
 }
 
 void PopulateResourceBrowserResults(Array<BrowserFile@>@ files)
 {
     browserFileList.RemoveAllItems();
     for(uint i=0; i < files.length; i++)
-    {
         CreateFileList(files[i]);
+}
+
+void RefreshBrowserResults()
+{
+    if (browserSearch.text.empty)
+    {
+        browserDirList.visible = true;
+        PopulateResourceBrowserFilesByDirectory(selectedBrowserDirectory);
+    }
+    else
+    {
+        browserDirList.visible = false;
+        PopulateResourceBrowserBySearch();
     }
 }
+
+void HandleResourceFilterToggleAllToggled(StringHash eventType, VariantMap& eventData)
+{
+    CheckBox@ checkbox = eventData["Element"].GetPtr();
+    UIElement@ filterHolder = browserFilterWindow.GetChild("Filters", true);
+    Array<UIElement@> children = filterHolder.GetChildren(true);
+
+    ignoreRefreshBrowserResults = true;
+    for(uint i=0; i < children.length; ++i)
+    {
+        CheckBox@ filter = children[i];
+        if (filter !is null)
+            filter.checked = checkbox.checked;
+    }
+    ignoreRefreshBrowserResults = false;
+    RefreshBrowserResults();
+}
+
+void HandleResourceFilterToggled(StringHash eventType, VariantMap& eventData)
+{
+    CheckBox@ checkbox = eventData["Element"].GetPtr();
+    if (!checkbox.vars.Contains(TEXT_VAR_RESOURCE_TYPE))
+        return;
+
+    int resourceType = checkbox.GetVar(TEXT_VAR_RESOURCE_TYPE).GetInt();
+    int find = activeResourceFilters.Find(resourceType);
+
+    if (checkbox.checked && find != -1)
+        activeResourceFilters.Erase(find);
+    else if (!checkbox.checked && find == -1)
+        activeResourceFilters.Push(resourceType);
+
+    if (ignoreRefreshBrowserResults == false)
+        RefreshBrowserResults();
+}
+
 
 void HandleRescanResourceBrowserClick(StringHash eventType, VariantMap& eventData)
 {
     ScanResourceDirectories();
     PopulateBrowserDirectories();
-    PopulateResourceBrowserResults(rootDir);
+    PopulateResourceBrowserFilesByDirectory(rootDir);
 }
 
 void HandleResourceBrowserDirListSelectionChange(StringHash eventType, VariantMap& eventData)
@@ -470,7 +640,8 @@ void HandleResourceBrowserDirListSelectionChange(StringHash eventType, VariantMa
     BrowserDir@ dir = GetBrowserDir(uiElement.vars[TEXT_VAR_DIR_ID].GetString());
     if (dir is null)
         return;
-    PopulateResourceBrowserResults(dir);
+
+    PopulateResourceBrowserFilesByDirectory(dir);
 }
 
 void HandleResourceBrowserFileListSelectionChange(StringHash eventType, VariantMap& eventData)
@@ -520,59 +691,7 @@ void HandleResourceBrowserFileListSelectionChange(StringHash eventType, VariantM
 
 void HandleResourceBrowserSearchTextChange(StringHash eventType, VariantMap& eventData)
 {
-    if (browserSearch.text.empty)
-    {
-        browserDirList.visible = true;
-        PopulateResourceBrowserResults(selectedBrowserDirectory);
-    }
-    else
-    {
-        browserDirList.visible = false;
-
-        String query = browserSearch.text;
-
-        Array<int> scores;
-        Array<BrowserFile@> scored;
-        Array<BrowserFile@> filtered;
-        {
-            BrowserFile@ file;
-            for(uint x=0; x < browserFiles.length; x++)
-            {
-                @file = browserFiles[x];
-                file.sortScore = -1;
-                int find = file.fullname.Find(query, 0, false);
-                if (find > -1)
-                {
-                    int fudge = query.length - file.fullname.length;
-                    int score = find * Abs(fudge*2) + Abs(fudge);
-                    file.sortScore = score;
-                    scored.Push(file);
-                    scores.Push(score);
-                }
-            }
-        }
-
-        // cut this down for a faster sort
-        if (scored.length > BROWSER_SEARCH_LIMIT)
-        {
-            scores.Sort();
-            int scoreThreshold = scores[BROWSER_SEARCH_LIMIT];
-            BrowserFile@ file;
-            for(uint x=0;x<scored.length;x++)
-            {
-                file = scored[x];
-                if (file.sortScore <= scoreThreshold)
-                    filtered.Push(file);
-            }
-        }
-        else
-            filtered = scored;
-
-        browserSearchSortMode = BROWSER_SORT_MODE_ALPHA;
-        filtered.Sort();
-        PopulateResourceBrowserResults(filtered);
-        browserResultsMessage.text = "Showing top " + filtered.length + " of " + scored.length + " results";
-    }
+    RefreshBrowserResults();
 }
 
 BrowserFile@ GetBrowserFileFromId(uint id)
@@ -997,7 +1116,13 @@ bool GetXmlType(String path, ShortStringHash &out fileType, bool useCache = fals
 
 String ResourceTypeName(int resourceType)
 {
-    if (resourceType == RESOURCE_TYPE_SCENE)
+    if (resourceType == RESOURCE_TYPE_UNUSABLE)
+        return "Unusable";
+    else if (resourceType == RESOURCE_TYPE_UNKNOWN)
+        return "Unknown";
+    else if (resourceType == RESOURCE_TYPE_NOTSET)
+        return "Uninitialized";
+    else if (resourceType == RESOURCE_TYPE_SCENE)
         return "Scene";
     else if (resourceType == RESOURCE_TYPE_SCRIPTFILE)
         return "Script File";

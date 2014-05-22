@@ -43,6 +43,16 @@
 				<attribute name="Image Rect" value="128 32 144 48" />
 			</element>
 		</element>
+		<element type="Button">
+			<attribute name="Name" value="FilterButton" />
+			<attribute name="Min Size" value="16 16" />
+			<attribute name="Max Size" value="16 16" />
+			<attribute name="Layout Mode" value="Horizontal" />
+			<element type="BorderImage">
+				<attribute name="Texture" value="Texture2D;Textures/Editor/EditorIcons.png" />
+				<attribute name="Image Rect" value="240 80 254 94" />
+			</element>
+		</element>
 		<element type="Button" style="CloseButton">
 			<attribute name="Name" value="CloseButton" />
 		</element>
