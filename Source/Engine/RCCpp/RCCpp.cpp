@@ -25,6 +25,9 @@
 #include "FileSystem.h"
 #include "CoreEvents.h"
 #include "Log.h"
+#include "ResourceCache.h"
+#include "ResourceEvents.h"
+#include "RCCppFile.h"
 
 #if defined(_WIN32)
 #error "Not implemented"
@@ -43,13 +46,16 @@ RCCpp::RCCpp(Context* context) :
 #elif defined(__APPLE_CC__) || defined(BSD)
     impl_ = new RCCppUnix(context);
 #endif
-    fileWatcher_ = new FileWatcher(context);
-    SubscribeToEvent(E_BEGINFRAME, HANDLER(RCCpp, HandleBeginFrame));
+
+    context_->RegisterFactory<RCCppFile>();
+    cache_ = GetSubsystem<ResourceCache>();
+    cache_->SetAutoReloadResources(true);
 }
 
 bool RCCpp::ExecuteFile(const String &fileName)
 {
-    fileWatcher_->StartWatching(fileName, true);
+    mainRCCppFile_ = cache_->GetResource<RCCppFile>(fileName);
+    SubscribeToEvent(cache_, E_FILECHANGED, HANDLER(RCCpp, HandleRCCppFileChanged));
     return Compile(fileName);
 }
 
@@ -63,19 +69,6 @@ bool RCCpp::Compile(const String &fileName)
     return ret;
 }
 
-void RCCpp::HandleBeginFrame(StringHash eventType, VariantMap& eventData)
-{
-    String fileChange;
-    while (fileWatcher_->GetNextChange(fileChange))
-    {
-        if (GetExtension(fileChange) == ".cpp")
-        {
-            LOGDEBUG("Detected file change: " + fileChange);
-            Compile(fileChange);
-        }
-    }
-}
-
 void RCCpp::Start()
 {
     impl_->Start();
@@ -84,6 +77,25 @@ void RCCpp::Start()
 void RCCpp::Stop()
 {
     impl_->Stop();
+}
+
+void RCCpp::HandleRCCppFileChanged(StringHash eventType, VariantMap& eventData)
+{
+    String fileName = eventData[FileChanged::P_FILENAME].ToString();
+    if (GetExtension(fileName) == ".cpp")
+    {
+        if (cache_->SanitateResourceName(fileName) == mainRCCppFile_->GetName())
+        {
+            impl_->Stop();
+        }
+        LOGDEBUG("Reloading cpp file: " + fileName);
+        Compile(fileName);
+
+        if (cache_->SanitateResourceName(fileName) == mainRCCppFile_->GetName())
+        {
+            impl_->Start();
+        }
+    }
 }
 
 }

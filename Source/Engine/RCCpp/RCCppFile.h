@@ -20,51 +20,24 @@
 // THE SOFTWARE.
 //
 
-#include "RCCppMainObject.h"
+#ifndef RCCPPFILE_H
+#define RCCPPFILE_H
+
+#include "Object.h"
+#include "Context.h"
+#include "Resource.h"
 
 namespace Urho3D
 {
-    class Node;
-    class Scene;
-    class UIElement;
-}
 
-class RCCppTest : public RCCppMainObject
+class URHO3D_API RCCppFile : public Resource
 {
-    OBJECT(RCCppTest);
+    OBJECT(RCCppFile);
 
 public:
-    RCCppTest(Context* context);
-    virtual ~RCCppTest();
-
-    virtual void Start();
-    virtual void Stop();
-
-private:
-    /// Construct the scene content.
-    void CreateScene();
-    /// Construct an instruction text to the UI.
-    void CreateInstructions();
-    /// Set up a viewport for displaying the scene.
-    void SetupViewport();
-    /// Read input and moves the camera.
-    void MoveCamera(float timeStep);
-    /// Subscribe to application-wide logic update events.
-    void SubscribeToEvents();
-    /// Handle the logic update event.
-    void HandleUpdate(StringHash eventType, VariantMap& eventData);
-    /// Handle key down event to process key controls common to all samples.
-    void HandleKeyDown(StringHash eventType, VariantMap& eventData);
-
-    /// Sprite nodes.
-    Vector<SharedPtr<Node> > spriteNodes_;
-
-    /// Scene.
-    SharedPtr<Scene> scene_;
-    /// Camera scene node.
-    SharedPtr<Node> cameraNode_;
-
-    SharedPtr<UIElement> uiElement_;
+    RCCppFile(Context* context);
+    bool Load(Deserializer &source);
 };
 
-RCCP_OBJECT(RCCppTest);
+}
+#endif // RCCPPFILE_H

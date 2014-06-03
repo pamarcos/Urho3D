@@ -27,9 +27,12 @@
 #include "Context.h"
 #include "FileWatcher.h"
 #include "RCCppImpl.h"
+#include "RCCppFile.h"
 
 namespace Urho3D
 {
+    class ResourceCache;
+
 class URHO3D_API RCCpp : public Object
 {
     OBJECT(RCCpp);
@@ -37,17 +40,16 @@ class URHO3D_API RCCpp : public Object
 public:
     RCCpp(Context* context);
 
-    /// Execute script file. Return true if successful.
     bool ExecuteFile(const String& fileName);
     bool Compile(const String& fileName);
-    /// Handle begin frame event to check for completed async executions.
-    void HandleBeginFrame(StringHash eventType, VariantMap& eventData);
     void Start();
     void Stop();
+    void HandleRCCppFileChanged(StringHash eventType, VariantMap& eventData);
 
 private:
+    SharedPtr<RCCppFile> mainRCCppFile_;
     SharedPtr<RCCppImpl> impl_;
-    SharedPtr<FileWatcher> fileWatcher_;
+    ResourceCache* cache_;
 };
 
 }

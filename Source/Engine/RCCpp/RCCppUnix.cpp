@@ -36,7 +36,6 @@ RCCppUnix::RCCppUnix(Context* context) :
     createObject_(NULL),
     destroyObject_(NULL)
 {
-
 }
 
 RCCppUnix::~RCCppUnix()

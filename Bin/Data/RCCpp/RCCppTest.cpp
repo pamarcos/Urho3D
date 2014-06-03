@@ -56,7 +56,7 @@
 #include "Log.h"
 
 // Number of static sprites to draw
-static const unsigned NUM_SPRITES = 200;
+static const unsigned NUM_SPRITES = 10;
 static const ShortStringHash VAR_MOVESPEED("MoveSpeed");
 static const ShortStringHash VAR_ROTATESPEED("RotateSpeed");
 
@@ -163,8 +163,11 @@ void RCCppTest::CreateInstructions()
     ResourceCache* cache = GetSubsystem<ResourceCache>();
     UI* ui = GetSubsystem<UI>();
 
+    uiElement_ = ui->GetRoot()->CreateChild<UIElement>();
+    uiElement_->SetSize(ui->GetRoot()->GetSize());
+
     // Construct new Text object, set string to display and font to use
-    Text* instructionText_ = ui->GetRoot()->CreateChild<Text>();
+    Text* instructionText_ = uiElement_->CreateChild<Text>();
     instructionText_->SetText("Use WASD keys to move, use PageUp PageDown keys to zoom");
     instructionText_->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
 
