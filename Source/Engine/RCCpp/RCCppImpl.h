@@ -1,6 +1,3 @@
-#ifndef RCCPPIMPL_H
-#define RCCPPIMPL_H
-
 //
 // Copyright (c) 2008-2014 the Urho3D project.
 //
@@ -23,8 +20,12 @@
 // THE SOFTWARE.
 //
 
+#ifndef RCCPPIMPL_H
+#define RCCPPIMPL_H
+
 #include "Object.h"
 #include "Context.h"
+#include "List.h"
 
 namespace Urho3D
 {
@@ -34,44 +35,30 @@ class URHO3D_API RCCppImpl : public Object
     OBJECT(RCCppImpl);
 
 public:
-    RCCppImpl(Context* context) : Object(context)
-    {
-        String URHO3D_HOME = getenv("URHO3D_HOME");
-        compilerFlags_ =    "-I. "
-                            "-I" + URHO3D_HOME + "/Build/Engine " +
-                            "-I" + URHO3D_HOME + "/Source/Engine/RCCpp " +
-                            "-I" + URHO3D_HOME + "/Source/Engine" +
-                            "-I" + URHO3D_HOME + "/Source/Engine/Audio " +
-                            "-I" + URHO3D_HOME + "/Source/Engine/Container " +
-                            "-I" + URHO3D_HOME + "/Source/Engine/Core " +
-                            "-I" + URHO3D_HOME + "/Source/Engine/Engine " +
-                            "-I" + URHO3D_HOME + "/Source/Engine/Graphics " +
-                            "-I" + URHO3D_HOME + "/Source/Engine/Input " +
-                            "-I" + URHO3D_HOME + "/Source/Engine/IO " +
-                            "-I" + URHO3D_HOME + "/Source/Engine/Math " +
-                            "-I" + URHO3D_HOME + "/Source/Engine/Navigation " +
-                            "-I" + URHO3D_HOME + "/Source/Engine/Network " +
-                            "-I" + URHO3D_HOME + "/Source/Engine/Physics " +
-                            "-I" + URHO3D_HOME + "/Source/Engine/Resource " +
-                            "-I" + URHO3D_HOME + "/Source/Engine/Scene " +
-                            "-I" + URHO3D_HOME + "/Source/Engine/UI " +
-                            "-I" + URHO3D_HOME + "/Source/Engine/Urho2D " +
-                            "-I" + URHO3D_HOME + "/Source/ThirdParty/Box2D " +
-                            "-I" + URHO3D_HOME + "/Source/ThirdParty/Bullet/src " +
-                            "-I" + URHO3D_HOME + "/Source/ThirdParty/kNet/include " +
-                            "-I" + URHO3D_HOME + "/Source/ThirdParty/SDL/include " +
-                            "-L" + URHO3D_HOME + "/Lib " + "-lUrho3D " +
-                            "-DURHO3D_LOGGING ";
-    }
-    virtual ~RCCppImpl() {}
+    RCCppImpl(Context* context);
+    virtual ~RCCppImpl();
 
     /// Execute script file. Return true if successful.
     virtual bool Compile(const String& fileName) = 0;
     virtual void Start() = 0;
     virtual void Stop() = 0;
 
+    String GetCompilerLine(const String& fileName);
+    String GetCompilerLine();
+
+    virtual String getCompilerSharedLib() = 0;
+    virtual String getIncPathPrefix() = 0;
+    virtual String getLibPathPrefix() = 0;
+    virtual String getLinkLibPrefix() = 0;
+    virtual String getDefinePrefix() = 0;
+
 protected:
-    String compilerFlags_;
+    List<String> incPaths_;
+    List<String> libPaths_;
+    List<String> libraries_;
+    List<String> compilerFlags_;
+    List<String> linkerFlags_;
+    List<String> defines_;
 };
 
 }

@@ -46,6 +46,12 @@ public:
     void Start();
     void Stop();
 
+    virtual String getCompilerSharedLib();
+    virtual String getIncPathPrefix();
+    virtual String getLibPathPrefix();
+    virtual String getLinkLibPrefix();
+    virtual String getDefinePrefix();
+
     bool Compile(const String& fileName);
     bool LoadLibrary(const String& fileName);
     void UnloadLibrary();
@@ -55,8 +61,6 @@ private:
     RCCppMainObject* object_;
     PCreateRCCppMainObject createObject_;
     PDestroyRCCppMainObject destroyObject_;
-
-    String compileLine_;
 };
 
 }

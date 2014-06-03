@@ -79,7 +79,11 @@ RCCppTest::RCCppTest(Context* context) :
 RCCppTest::~RCCppTest()
 {
     LOGINFO("RCCppTest::~RCCppTest");
-    scene_->Clear();
+    UI* ui = GetSubsystem<UI>();
+    if (ui)
+    {
+        ui->Clear();
+    }
 }
 
 void RCCppTest::Start()
@@ -160,7 +164,7 @@ void RCCppTest::CreateInstructions()
     UI* ui = GetSubsystem<UI>();
 
     // Construct new Text object, set string to display and font to use
-    instructionText_ = ui->GetRoot()->CreateChild<Text>();
+    Text* instructionText_ = ui->GetRoot()->CreateChild<Text>();
     instructionText_->SetText("Use WASD keys to move, use PageUp PageDown keys to zoom");
     instructionText_->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
 

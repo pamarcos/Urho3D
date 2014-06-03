@@ -36,7 +36,7 @@ RCCppUnix::RCCppUnix(Context* context) :
     createObject_(NULL),
     destroyObject_(NULL)
 {
-    compileLine_ =  "g++ -g -fPIC -shared  " + compilerFlags_;
+
 }
 
 RCCppUnix::~RCCppUnix()
@@ -49,10 +49,10 @@ bool RCCppUnix::Compile(const String &fileName)
     UnloadLibrary();
 
     String libName = fileName.Substring(0, fileName.Find(".cpp")) + ".so";
-    String compileString = compileLine_ + " " + fileName + " -o " + libName;
+    String compilerString = GetCompilerLine(fileName) + " " + fileName + " -o " + libName;
 
-    LOGDEBUG("RCCpp: Compiling using command line:\n" + compileString + "\n");
-    system(compileString.CString());
+    LOGDEBUG("RCCpp: Compiling using command line:\n" + compilerString + "\n");
+    system(compilerString.CString());
 
     return LoadLibrary(libName);
 }
@@ -108,6 +108,31 @@ void RCCppUnix::Stop()
     {
         object_->Stop();
     }
+}
+
+String RCCppUnix::getCompilerSharedLib()
+{
+    return "g++ -g -fPIC -shared";
+}
+
+String RCCppUnix::getIncPathPrefix()
+{
+    return "-I";
+}
+
+String RCCppUnix::getLibPathPrefix()
+{
+    return "-L";
+}
+
+String RCCppUnix::getLinkLibPrefix()
+{
+    return "-l";
+}
+
+String RCCppUnix::getDefinePrefix()
+{
+    return "-D";
 }
 
 }

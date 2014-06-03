@@ -26,7 +26,6 @@ namespace Urho3D
 {
     class Node;
     class Scene;
-    class Text;
 }
 
 class RCCppTest : public RCCppMainObject
@@ -63,9 +62,6 @@ private:
     SharedPtr<Scene> scene_;
     /// Camera scene node.
     SharedPtr<Node> cameraNode_;
-
-    SharedPtr<Text> instructionText_;
-
 };
 
 RCCP_OBJECT(RCCppTest);
