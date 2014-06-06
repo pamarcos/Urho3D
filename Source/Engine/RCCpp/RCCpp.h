@@ -28,28 +28,63 @@
 #include "FileWatcher.h"
 #include "RCCppImpl.h"
 #include "RCCppFile.h"
+#include "Thread.h"
 
 namespace Urho3D
 {
     class ResourceCache;
+    class RCCpp;
+    class Condition;
+
+class URHO3D_API CompilationThread : public Object, public Thread
+{
+    OBJECT(CompilationThread);
+
+public:
+    CompilationThread(Context* context, RCCpp* rcCpp, RCCppFile* file);
+    ~CompilationThread();
+
+    void ThreadFunction();
+
+private:
+    bool compilationSuccesful_;
+    RCCpp* rcCpp_;
+    RCCppFile* rcCppFile_;
+};
 
 class URHO3D_API RCCpp : public Object
 {
     OBJECT(RCCpp);
 
+    friend class CompilationThread;
+
 public:
     RCCpp(Context* context);
+    ~RCCpp();
 
     bool ExecuteFile(const String& fileName);
-    bool Compile(const String& fileName);
+    void CompileAsync(const RCCppFile& file);
+    bool CompileSync(const RCCppFile&file);
     void Start();
     void Stop();
+    bool ReloadLibrary();
+    void SendCompilationFinishedEvent(bool successful, const RCCppFile& file);
+
+    void HandlePostUpdate(StringHash eventType, VariantMap& eventData);
     void HandleRCCppFileChanged(StringHash eventType, VariantMap& eventData);
+    void HandleCompilationFinished(StringHash eventType, VariantMap& eventData);
+    void HandleLibraryLoaded(StringHash eventType, VariantMap& eventData);
+    void HandleClassLoaded(StringHash eventType, VariantMap& eventData);
 
 private:
-    SharedPtr<RCCppFile> mainRCCppFile_;
+    RCCppFile* mainRCCppFile_;
+    RCCppFile* rcCppFileCompiled_;
     SharedPtr<RCCppImpl> impl_;
     ResourceCache* cache_;
+    bool compilationSuccesful_;
+    SharedPtr<CompilationThread> compilationThread_;
+    bool firstCompilation_;
+    bool compilationFinished_;
 };
 
 }

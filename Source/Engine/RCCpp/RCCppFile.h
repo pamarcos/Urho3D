@@ -37,6 +37,11 @@ class URHO3D_API RCCppFile : public Resource
 public:
     RCCppFile(Context* context);
     bool Load(Deserializer &source);
+    bool IsMainFile() const;
+    void SetMainFile(bool value);
+
+private:
+    bool mainFile_;
 };
 
 }

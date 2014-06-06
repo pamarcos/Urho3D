@@ -20,40 +20,31 @@
 // THE SOFTWARE.
 //
 
-#ifndef RCCPPOBJECT_H
-#define RCCPPOBJECT_H
+#ifndef RCCPPMAINOBJECT_H
+#define RCCPPMAINOBJECT_H
 
 #include "Object.h"
 #include "Context.h"
-#include "CoreEvents.h"
+#include "RCCppObject.h"
 
 using namespace Urho3D;
 
 namespace Urho3D
 {
 
-class RCCppMainObject : public Object
+class RCCppMainObject : public RCCppObject
 {
     OBJECT(RCCppMainObject);
 
-    RCCppMainObject(Context* context) : Object(context)
-    {
-        SubscribeToEvent(E_UPDATE, HANDLER(RCCppMainObject, Update));
-    }
-    virtual ~RCCppMainObject() {}
+    RCCppMainObject(Context* context) : RCCppObject(context) {}
 
     virtual void Start() = 0;
     virtual void Stop() = 0;
-    virtual void Update(StringHash eventType, VariantMap& eventData) {}
 };
 
 typedef RCCppMainObject* (*PCreateRCCppMainObject)(Context*);
 typedef void (*PDestroyRCCppMainObject)(RCCppMainObject*);
 
-#define RCCP_OBJECT(typeName) \
-    extern "C" RCCppMainObject* create(Context* context) { return new typeName(context); } \
-    extern "C" void destroy(RCCppMainObject* object) { delete object; }
-
 }
 
-#endif // RCCPPOBJECT_H
+#endif // RCCPPMAINOBJECT_H

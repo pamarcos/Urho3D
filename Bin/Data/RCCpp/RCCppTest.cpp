@@ -19,7 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
 #include "RCCppTest.h"
 
 #include "AnimatedSprite2D.h"
@@ -38,9 +37,7 @@
 #include "StaticSprite2D.h"
 #include "Text.h"
 #include "Zone.h"
-
 #include "DebugNew.h"
-
 #include "Console.h"
 #include "Cursor.h"
 #include "DebugHud.h"
@@ -52,11 +49,14 @@
 #include "Timer.h"
 #include "UI.h"
 #include "XMLFile.h"
-
 #include "Log.h"
 
+#include "Subdir/MyClass.h"
+
+RCCPP_OBJECT(RCCppTest);
+
 // Number of static sprites to draw
-static const unsigned NUM_SPRITES = 10;
+static const unsigned NUM_SPRITES = 200;
 static const ShortStringHash VAR_MOVESPEED("MoveSpeed");
 static const ShortStringHash VAR_ROTATESPEED("RotateSpeed");
 
@@ -79,16 +79,14 @@ RCCppTest::RCCppTest(Context* context) :
 RCCppTest::~RCCppTest()
 {
     LOGINFO("RCCppTest::~RCCppTest");
-    UI* ui = GetSubsystem<UI>();
-    if (ui)
-    {
-        ui->Clear();
-    }
+    uiElement_->Remove();
 }
 
 void RCCppTest::Start()
 {
     LOGINFO("RCCppTest::Start");
+    MyClass myClass(context_);
+    myClass.PrintSomething();
 }
 
 void RCCppTest::Stop()
@@ -168,7 +166,7 @@ void RCCppTest::CreateInstructions()
 
     // Construct new Text object, set string to display and font to use
     Text* instructionText_ = uiElement_->CreateChild<Text>();
-    instructionText_->SetText("Use WASD keys to move, use PageUp PageDown keys to zoom");
+    instructionText_->SetText("Urho3D is awesome with RCCpp!");
     instructionText_->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
 
     // Position the text relative to the screen center

@@ -66,5 +66,3 @@ private:
 
     SharedPtr<UIElement> uiElement_;
 };
-
-RCCP_OBJECT(RCCppTest);

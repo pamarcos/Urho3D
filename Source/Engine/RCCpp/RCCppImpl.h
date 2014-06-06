@@ -25,7 +25,8 @@
 
 #include "Object.h"
 #include "Context.h"
-#include "List.h"
+#include "RCCppFile.h"
+#include "RCCppObject.h"
 
 namespace Urho3D
 {
@@ -35,30 +36,17 @@ class URHO3D_API RCCppImpl : public Object
     OBJECT(RCCppImpl);
 
 public:
-    RCCppImpl(Context* context);
-    virtual ~RCCppImpl();
+    RCCppImpl(Context* context) : Object(context) {}
+    virtual ~RCCppImpl() {}
 
     /// Execute script file. Return true if successful.
-    virtual bool Compile(const String& fileName) = 0;
+    virtual bool Compile(const RCCppFile& file) = 0;
     virtual void Start() = 0;
     virtual void Stop() = 0;
+    virtual bool LoadLibrary(const String& fileName) = 0;
+    virtual void UnloadLibrary() = 0;
 
-    String GetCompilerLine(const String& fileName);
-    String GetCompilerLine();
-
-    virtual String getCompilerSharedLib() = 0;
-    virtual String getIncPathPrefix() = 0;
-    virtual String getLibPathPrefix() = 0;
-    virtual String getLinkLibPrefix() = 0;
-    virtual String getDefinePrefix() = 0;
-
-protected:
-    List<String> incPaths_;
-    List<String> libPaths_;
-    List<String> libraries_;
-    List<String> compilerFlags_;
-    List<String> linkerFlags_;
-    List<String> defines_;
+    virtual const String GetLibraryPath() = 0;
 };
 
 }

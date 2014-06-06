@@ -32,6 +32,7 @@ namespace Urho3D
 {
 
 class RCCppObject;
+class FileSystem;
 
 class URHO3D_API RCCppUnix : public RCCppImpl
 {
@@ -46,21 +47,28 @@ public:
     void Start();
     void Stop();
 
-    virtual String getCompilerSharedLib();
-    virtual String getIncPathPrefix();
-    virtual String getLibPathPrefix();
-    virtual String getLinkLibPrefix();
-    virtual String getDefinePrefix();
-
-    bool Compile(const String& fileName);
+    bool Compile(const RCCppFile& file);
     bool LoadLibrary(const String& fileName);
     void UnloadLibrary();
 
+    virtual RCCppObject* CreateObject(const String& objectName);
+    virtual void DestroyObject(RCCppObject* object);
+
+    const String GetLibraryPath();
+
 private:
+    bool CreateMakefile(const String& fileName);
+
     void* library_;
-    RCCppMainObject* object_;
-    PCreateRCCppMainObject createObject_;
-    PDestroyRCCppMainObject destroyObject_;
+    String libraryName_;
+    String libraryPath_;
+    RCCppMainObject* mainObject_;
+    FileSystem* fileSystem_;
+
+    PCreateRCCppObject createObject_;
+    PDestroyRCCppObject destroyObject_;
+
+    static const String makefile_;
 };
 
 }
