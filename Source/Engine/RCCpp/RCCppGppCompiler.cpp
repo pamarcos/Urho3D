@@ -89,7 +89,9 @@ const String RCCppGppCompiler::makefile_ =  ""
         "	$(CXX) $(CPPFLAGS) -c -o $@ $^\n"
         "\n"
         "clean:\n"
-        "	$(RM) $(OBJ_DIR)";
+        "	$(RM) $(OBJ_DIR)\n"
+        "\n"
+        "PHONY: clean";
 
 RCCppGppCompiler::RCCppGppCompiler(Context* context) :
     RCCppCompiler(context)
