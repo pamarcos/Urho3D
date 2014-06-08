@@ -68,19 +68,30 @@ bool RCCpp::ExecuteFile(const String &fileName)
 {
     mainRCCppFile_ = cache_->GetResource<RCCppFile>(fileName);
     mainRCCppFile_->SetMainFile(true);
-
-    SubscribeToEvent(cache_, E_FILECHANGED, HANDLER(RCCpp, HandleRCCppFileChanged));
-    SubscribeToEvent(E_POSTUPDATE, HANDLER(RCCpp, HandlePostUpdate));
-    SubscribeToEvent(this, E_RCCPP_COMPILATION_FINISHED, HANDLER(RCCpp, HandleCompilationFinished));
-    SubscribeToEvent(this, E_RCCPP_LIBRARY_LOADED, HANDLER(RCCpp, HandleLibraryLoaded));
-    SubscribeToEvent(this, E_RCCPP_CLASS_LOADED, HANDLER(RCCpp, HandleClassLoaded));
-
+    SubscribeToEvents();
     compilationSuccesful_ = CompileSync(*mainRCCppFile_);
     return ReloadLibrary();
 }
 
+void RCCpp::SubscribeToEvents(){
+    SubscribeToEvent(cache_, E_FILECHANGED, HANDLER(RCCpp, HandleRCCppFileChanged));
+    SubscribeToEvent(E_POSTUPDATE, HANDLER(RCCpp, HandlePostUpdate));
+
+    SubscribeToEvent(this, E_RCCPP_COMPILATION_STARTED, HANDLER(RCCpp, HandleCompilationStarted));
+    SubscribeToEvent(this, E_RCCPP_COMPILATION_FINISHED, HANDLER(RCCpp, HandleCompilationFinished));
+    SubscribeToEvent(this, E_RCCPP_LIBRARY_PRELOADED, HANDLER(RCCpp, HandleLibraryPreLoaded));
+    SubscribeToEvent(this, E_RCCPP_LIBRARY_POSTLOADED, HANDLER(RCCpp, HandleLibraryPostLoaded));
+    SubscribeToEvent(this, E_RCCPP_CLASS_PRELOADED, HANDLER(RCCpp, HandleClassPreLoaded));
+    SubscribeToEvent(this, E_RCCPP_CLASS_POSTLOADED, HANDLER(RCCpp, HandleClassPostLoaded));
+}
+
 bool RCCpp::CompileSync(const RCCppFile &file)
 {
+    using namespace RCCppCompilationStarted;
+    VariantMap& eventData = GetEventDataMap();
+    eventData[P_FILE] = reinterpret_cast<void*>(const_cast<RCCppFile*>(&file));
+    SendEvent(E_RCCPP_COMPILATION_STARTED, eventData);
+
     if (!impl_->Compile(file))
     {
         LOGERROR("Error compiling file " + file.GetName());
@@ -98,11 +109,14 @@ bool RCCpp::CompileSync(const RCCppFile &file)
 
 void RCCpp::CompileAsync(const RCCppFile& file)
 {
+    using namespace RCCppCompilationStarted;
+    VariantMap& eventData = GetEventDataMap();
+    eventData[P_FILE] = reinterpret_cast<void*>(const_cast<RCCppFile*>(&file));
+    SendEvent(E_RCCPP_COMPILATION_STARTED, eventData);
+
     compilationThread_ = new CompilationThread(context_, this, &(const_cast<RCCppFile&>(file)));
     compilationThread_->AddRef();
     compilationThread_->Run();
-
-    rcCppFileCompiled_ = const_cast<RCCppFile*>(&file);
 }
 
 void RCCpp::Start()
@@ -142,18 +156,40 @@ void RCCpp::Stop()
 
 bool RCCpp::ReloadLibrary()
 {
+    String libPath = impl_->GetLibraryPath();
+    String className = GetFileName(rcCppFileCompiled_->GetName());
+
+    {
+        using namespace RCCppLibraryPreloaded;
+        VariantMap& libPreEventData = GetEventDataMap();
+        libPreEventData[P_LIBRARY] = libPath;
+        SendEvent(E_RCCPP_LIBRARY_PRELOADED, libPreEventData);
+    }
+
+    {
+        using namespace RCCppClassPreLoaded;
+        VariantMap& classPreEventData = GetEventDataMap();
+        classPreEventData[P_CLASS_NAME] = className;
+        SendEvent(E_RCCPP_CLASS_PRELOADED, classPreEventData);
+    }
+
     impl_->UnloadLibrary();
+
     if (impl_->LoadLibrary(impl_->GetLibraryPath()))
     {
-        using namespace RCCppLibraryLoaded;
-        VariantMap& libEventData = GetEventDataMap();
-        libEventData[P_LIBRARY] = impl_->GetLibraryPath();
-        SendEvent(E_RCCPP_LIBRARY_LOADED, libEventData);
+        {
+            using namespace RCCppLibraryPostLoaded;
+            VariantMap& libPostEventData = GetEventDataMap();
+            libPostEventData[P_LIBRARY] = libPath;
+            SendEvent(E_RCCPP_LIBRARY_POSTLOADED, libPostEventData);
+        }
 
-        using namespace RCCppClassLoaded;
-        VariantMap& classEventData = GetEventDataMap();
-        classEventData[P_CLASS_NAME] = GetFileName(rcCppFileCompiled_->GetName());
-        SendEvent(E_RCCPP_CLASS_LOADED, classEventData);
+        {
+            using namespace RCCppClassPostLoaded;
+            VariantMap& classPostEventData = GetEventDataMap();
+            classPostEventData[P_CLASS_NAME] = className;
+            SendEvent(E_RCCPP_CLASS_POSTLOADED, classPostEventData);
+        }
 
         return true;
     }
@@ -178,7 +214,12 @@ void RCCpp::HandleRCCppFileChanged(StringHash eventType, VariantMap& eventData)
     String fileName = eventData[P_FILENAME].GetString();
     if (GetExtension(fileName) == ".cpp")
     {
-        LOGDEBUG("Reloading cpp file: " + fileName);
+        LOGDEBUG("RCCpp: reloading cpp file: " + fileName);
+        CompileAsync(*cache_->GetResource<RCCppFile>(fileName));
+    }
+    else if (GetExtension(fileName) == ".h")
+    {
+        LOGDEBUG("RCCpp: reloading header file: " + fileName);
         CompileAsync(*cache_->GetResource<RCCppFile>(fileName));
     }
 }
@@ -187,6 +228,8 @@ void RCCpp::HandlePostUpdate(StringHash eventType, VariantMap &eventData)
 {
     if (compilationFinished_)
     {
+        SendCompilationFinishedEvent(compilationSuccesful_, *rcCppFileCompiled_);
+
         if (compilationThread_.Get() != NULL)
         {
             compilationThread_->ReleaseRef();
@@ -194,26 +237,25 @@ void RCCpp::HandlePostUpdate(StringHash eventType, VariantMap &eventData)
 
         if (!firstCompilation_)
         {
-            if (rcCppFileCompiled_->IsMainFile())
-            {
-                impl_->Stop();
-            }
-
+            impl_->Stop();
             ReloadLibrary();
-
-            if (rcCppFileCompiled_->IsMainFile())
-            {
-                impl_->Start();
-            }
+            impl_->Start();
         }
         else
         {
             firstCompilation_ = false;
         }
 
-        SendCompilationFinishedEvent(compilationSuccesful_, *rcCppFileCompiled_);
         compilationFinished_ = false;
     }
+}
+
+void RCCpp::HandleCompilationStarted(StringHash eventType, VariantMap &eventData)
+{
+    using namespace RCCppCompilationStarted;
+    RCCppFile* file = reinterpret_cast<RCCppFile*>(eventData[P_FILE].GetVoidPtr());
+
+    LOGDEBUG("RCCpp: Compilation started: " + file->GetName());
 }
 
 void RCCpp::HandleCompilationFinished(StringHash eventType, VariantMap &eventData)
@@ -224,18 +266,32 @@ void RCCpp::HandleCompilationFinished(StringHash eventType, VariantMap &eventDat
     LOGDEBUG("RCCpp: Compilation finished: " + file->GetName());
 }
 
-void RCCpp::HandleLibraryLoaded(StringHash eventType, VariantMap &eventData)
+void RCCpp::HandleLibraryPreLoaded(StringHash eventType, VariantMap &eventData)
 {
-    using namespace RCCppLibraryLoaded;
+    using namespace RCCppLibraryPreloaded;
     String libraryName = eventData[P_LIBRARY].GetString();
-    LOGDEBUG("RCCpp: Library loaded: " + libraryName);
+    LOGDEBUG("RCCpp: Library preloaded: " + libraryName);
 }
 
-void RCCpp::HandleClassLoaded(StringHash eventType, VariantMap &eventData)
+void RCCpp::HandleLibraryPostLoaded(StringHash eventType, VariantMap &eventData)
 {
-    using namespace RCCppClassLoaded;
+    using namespace RCCppLibraryPostLoaded;
+    String libraryName = eventData[P_LIBRARY].GetString();
+    LOGDEBUG("RCCpp: Library postloaded: " + libraryName);
+}
+
+void RCCpp::HandleClassPreLoaded(StringHash eventType, VariantMap &eventData)
+{
+    using namespace RCCppClassPreLoaded;
     String className = eventData[P_CLASS_NAME].GetString();
-    LOGDEBUG("RCCpp: Class loaded: " + className);
+    LOGDEBUG("RCCpp: Class preloaded: " + className);
+}
+
+void RCCpp::HandleClassPostLoaded(StringHash eventType, VariantMap &eventData)
+{
+    using namespace RCCppClassPostLoaded;
+    String className = eventData[P_CLASS_NAME].GetString();
+    LOGDEBUG("RCCpp: Class postloaded: " + className);
 }
 
 CompilationThread::CompilationThread(Context* context, RCCpp* rcCpp, RCCppFile* file) :
@@ -251,6 +307,7 @@ CompilationThread::~CompilationThread()
 
 void CompilationThread::ThreadFunction()
 {
+    rcCpp_->rcCppFileCompiled_ = rcCppFile_;
     if (!rcCpp_->impl_->Compile(*rcCppFile_))
     {
         LOGERROR("Error compiling file " + rcCppFile_->GetName());

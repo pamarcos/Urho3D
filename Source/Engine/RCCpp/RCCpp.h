@@ -69,12 +69,16 @@ public:
     void Stop();
     bool ReloadLibrary();
     void SendCompilationFinishedEvent(bool successful, const RCCppFile& file);
+    void SubscribeToEvents();
 
     void HandlePostUpdate(StringHash eventType, VariantMap& eventData);
     void HandleRCCppFileChanged(StringHash eventType, VariantMap& eventData);
+    void HandleCompilationStarted(StringHash eventType, VariantMap& eventData);
     void HandleCompilationFinished(StringHash eventType, VariantMap& eventData);
-    void HandleLibraryLoaded(StringHash eventType, VariantMap& eventData);
-    void HandleClassLoaded(StringHash eventType, VariantMap& eventData);
+    void HandleLibraryPreLoaded(StringHash eventType, VariantMap& eventData);
+    void HandleLibraryPostLoaded(StringHash eventType, VariantMap& eventData);
+    void HandleClassPreLoaded(StringHash eventType, VariantMap& eventData);
+    void HandleClassPostLoaded(StringHash eventType, VariantMap& eventData);
 
 private:
     RCCppFile* mainRCCppFile_;
