@@ -32,10 +32,10 @@
 #include "Engine.h"
 #include "Condition.h"
 
-#if defined(_WIN32)
-#error "Not implemented"
-#elif defined(__APPLE_CC__) || defined(BSD) || defined(__linux__)
+#if defined(__APPLE_CC__) || defined(BSD) || defined(__linux__) || defined(__MINGW32__)
 #include "RCCppUnix.h"
+#elif define (_WIN32)
+#error "Not implemented"
 #endif
 
 namespace Urho3D
@@ -49,10 +49,10 @@ RCCpp::RCCpp(Context* context) :
     firstCompilation_(true),
     compilationFinished_(false)
 {
-#if defined(_WIN32)
-#error "Not implemented"
-#elif defined(__APPLE_CC__) || defined(BSD)
+#if defined(__APPLE_CC__) || defined(BSD) || defined(__linux__) || defined(__MINGW32__)
     impl_ = new RCCppUnix(context);
+#elif
+#error "Not implemented"
 #endif
 
     context_->RegisterFactory<RCCppFile>();
@@ -69,11 +69,30 @@ bool RCCpp::ExecuteFile(const String &fileName)
     mainRCCppFile_ = cache_->GetResource<RCCppFile>(fileName);
     mainRCCppFile_->SetMainFile(true);
     SubscribeToEvents();
+
+    libraryName_ = GetFileName(fileName);
+    String path, name, ext;
+    SplitPath(fileName, path, name, ext);
+    libraryPath_ = path + name;
+
+#ifdef _WIN32
+    if (GetExtension(libraryPath_) != ".dll")
+    {
+        libraryPath_.Append(".dll");
+    }
+#else
+    if (GetExtension(libraryPath_) != ".so")
+    {
+        libraryPath_.Append(".so");
+    }
+#endif
+
     compilationSuccesful_ = CompileSync(*mainRCCppFile_);
     return ReloadLibrary();
 }
 
-void RCCpp::SubscribeToEvents(){
+void RCCpp::SubscribeToEvents()
+{
     SubscribeToEvent(cache_, E_FILECHANGED, HANDLER(RCCpp, HandleRCCppFileChanged));
     SubscribeToEvent(E_POSTUPDATE, HANDLER(RCCpp, HandlePostUpdate));
 
@@ -92,7 +111,7 @@ bool RCCpp::CompileSync(const RCCppFile &file)
     eventData[P_FILE] = reinterpret_cast<void*>(const_cast<RCCppFile*>(&file));
     SendEvent(E_RCCPP_COMPILATION_STARTED, eventData);
 
-    if (!impl_->Compile(file))
+    if (!impl_->Compile(file, libraryPath_))
     {
         LOGERROR("Error compiling file " + file.GetName());
         compilationSuccesful_ = false;
@@ -125,7 +144,7 @@ void RCCpp::Start()
     {
         if (compilationSuccesful_)
         {
-            impl_->Start();
+            impl_->Start(libraryName_);
         }
         else
         {
@@ -156,13 +175,12 @@ void RCCpp::Stop()
 
 bool RCCpp::ReloadLibrary()
 {
-    String libPath = impl_->GetLibraryPath();
     String className = GetFileName(rcCppFileCompiled_->GetName());
 
     {
         using namespace RCCppLibraryPreloaded;
         VariantMap& libPreEventData = GetEventDataMap();
-        libPreEventData[P_LIBRARY] = libPath;
+        libPreEventData[P_LIBRARY] = libraryPath_;
         SendEvent(E_RCCPP_LIBRARY_PRELOADED, libPreEventData);
     }
 
@@ -175,12 +193,12 @@ bool RCCpp::ReloadLibrary()
 
     impl_->UnloadLibrary();
 
-    if (impl_->LoadLibrary(impl_->GetLibraryPath()))
+    if (impl_->LoadLibrary(libraryPath_))
     {
         {
             using namespace RCCppLibraryPostLoaded;
             VariantMap& libPostEventData = GetEventDataMap();
-            libPostEventData[P_LIBRARY] = libPath;
+            libPostEventData[P_LIBRARY] = libraryPath_;
             SendEvent(E_RCCPP_LIBRARY_POSTLOADED, libPostEventData);
         }
 
@@ -239,7 +257,7 @@ void RCCpp::HandlePostUpdate(StringHash eventType, VariantMap &eventData)
         {
             impl_->Stop();
             ReloadLibrary();
-            impl_->Start();
+            impl_->Start(libraryName_);
         }
         else
         {
@@ -294,6 +312,16 @@ void RCCpp::HandleClassPostLoaded(StringHash eventType, VariantMap &eventData)
     LOGDEBUG("RCCpp: Class postloaded: " + className);
 }
 
+String RCCpp::GetLibraryName()
+{
+    return libraryName_;
+}
+
+String RCCpp::GetLibraryPath()
+{
+    return libraryPath_;
+}
+
 CompilationThread::CompilationThread(Context* context, RCCpp* rcCpp, RCCppFile* file) :
     Object(context),
     rcCpp_(rcCpp),
@@ -308,7 +336,7 @@ CompilationThread::~CompilationThread()
 void CompilationThread::ThreadFunction()
 {
     rcCpp_->rcCppFileCompiled_ = rcCppFile_;
-    if (!rcCpp_->impl_->Compile(*rcCppFile_))
+    if (!rcCpp_->impl_->Compile(*rcCppFile_, rcCpp_->libraryPath_))
     {
         LOGERROR("Error compiling file " + rcCppFile_->GetName());
         rcCpp_->compilationSuccesful_ = false;

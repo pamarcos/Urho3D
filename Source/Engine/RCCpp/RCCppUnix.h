@@ -26,13 +26,14 @@
 #include "Object.h"
 #include "Context.h"
 #include "RCCppImpl.h"
-#include "RCCppMainObject.h"
+#include "RCCppCompiler.h"
 
 namespace Urho3D
 {
 
+class RCCppMainObject;
 class RCCppObject;
-class FileSystem;
+class RCCppCompiler;
 
 class URHO3D_API RCCppUnix : public RCCppImpl
 {
@@ -42,33 +43,18 @@ public:
     RCCppUnix(Context* context);
     ~RCCppUnix();
 
-    /// Execute script file. Return true if successful.
-    bool ExecuteFile(const String& fileName);
-    void Start();
-    void Stop();
-
-    bool Compile(const RCCppFile& file);
-    bool LoadLibrary(const String& fileName);
+    bool Compile(const RCCppFile& file, const String& libraryPath);
+    bool LoadLibrary(const String& libraryPath);
     void UnloadLibrary();
 
-    virtual RCCppObject* CreateObject(const String& objectName);
-    virtual void DestroyObject(RCCppObject* object);
-
-    const String GetLibraryPath();
+    RCCppObject* CreateObject(const String& objectName);
+    void DestroyObject(RCCppObject* object);
 
 private:
-    bool CreateMakefile(const String& fileName);
-
+    SharedPtr<RCCppCompiler> compiler_;
     void* library_;
-    String libraryName_;
-    String libraryPath_;
-    RCCppMainObject* mainObject_;
-    FileSystem* fileSystem_;
-
     PCreateRCCppObject createObject_;
     PDestroyRCCppObject destroyObject_;
-
-    static const String makefile_;
 };
 
 }

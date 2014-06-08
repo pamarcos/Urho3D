@@ -20,40 +20,34 @@
 // THE SOFTWARE.
 //
 
-#ifndef RCCPPIMPL_H
-#define RCCPPIMPL_H
+#ifndef RCCPPGPPCOMPILER_H
+#define RCCPPGPPCOMPILER_H
 
 #include "Object.h"
 #include "Context.h"
 #include "RCCppFile.h"
-#include "RCCppObject.h"
+#include "RCCppCompiler.h"
 
 namespace Urho3D
 {
 
-class RCCppMainObject;
+class FileSystem;
 
-class URHO3D_API RCCppImpl : public Object
+class URHO3D_API RCCppGppCompiler : public RCCppCompiler
 {
-    OBJECT(RCCppImpl);
+    OBJECT(RCCppGppCompiler);
 
 public:
-    RCCppImpl(Context* context);
-    virtual ~RCCppImpl();
+    RCCppGppCompiler(Context* context);
 
-    /// Execute script file. Return true if successful.
-    virtual bool Compile(const RCCppFile& file, const String& libraryPath) = 0;
-    virtual void Start(const String& libraryName);
-    virtual void Stop();
-    virtual bool LoadLibrary(const String& libraryPath) = 0;
-    virtual void UnloadLibrary() = 0;
-    virtual RCCppObject* CreateObject(const String& objectName) = 0;
-    virtual void DestroyObject(RCCppObject* object) = 0;
+    bool CreateMakefile(const String& fileName, const String& libraryName);
+    bool Compile(const RCCppFile& file, const String& libraryPath);
 
-protected:
-    RCCppMainObject* mainObject_;
+private:
+    static const String makefile_;
+    int cores_;
+    FileSystem* fileSystem_;
 };
 
 }
-
-#endif // RCCPPIMPL_H
+#endif // RCCPPGPPCOMPILER_H

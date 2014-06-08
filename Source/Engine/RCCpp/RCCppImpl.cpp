@@ -20,40 +20,47 @@
 // THE SOFTWARE.
 //
 
-#ifndef RCCPPIMPL_H
-#define RCCPPIMPL_H
-
-#include "Object.h"
-#include "Context.h"
-#include "RCCppFile.h"
-#include "RCCppObject.h"
+#include "RCCppImpl.h"
+#include "RCCppMainObject.h"
+#include "Log.h"
 
 namespace Urho3D
 {
 
-class RCCppMainObject;
-
-class URHO3D_API RCCppImpl : public Object
+RCCppImpl::RCCppImpl(Context *context) :
+    Object(context),
+    mainObject_(NULL)
 {
-    OBJECT(RCCppImpl);
-
-public:
-    RCCppImpl(Context* context);
-    virtual ~RCCppImpl();
-
-    /// Execute script file. Return true if successful.
-    virtual bool Compile(const RCCppFile& file, const String& libraryPath) = 0;
-    virtual void Start(const String& libraryName);
-    virtual void Stop();
-    virtual bool LoadLibrary(const String& libraryPath) = 0;
-    virtual void UnloadLibrary() = 0;
-    virtual RCCppObject* CreateObject(const String& objectName) = 0;
-    virtual void DestroyObject(RCCppObject* object) = 0;
-
-protected:
-    RCCppMainObject* mainObject_;
-};
-
 }
 
-#endif // RCCPPIMPL_H
+RCCppImpl::~RCCppImpl()
+{
+}
+
+void RCCppImpl::Start(const String& libraryName)
+{
+    if (mainObject_ == NULL)
+    {
+        mainObject_ = static_cast<RCCppMainObject*>(CreateObject(libraryName));
+    }
+    if (mainObject_ != NULL)
+    {
+        mainObject_->Start();
+    }
+    else
+    {
+        LOGERROR("Error creating main RCCpp object " + libraryName);
+    }
+}
+
+void RCCppImpl::Stop()
+{
+    if (mainObject_ != NULL)
+    {
+        mainObject_->Stop();
+        DestroyObject(mainObject_);
+        mainObject_ = NULL;
+    }
+}
+
+}

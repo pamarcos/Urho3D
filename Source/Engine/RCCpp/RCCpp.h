@@ -42,8 +42,7 @@ class URHO3D_API CompilationThread : public Object, public Thread
 
 public:
     CompilationThread(Context* context, RCCpp* rcCpp, RCCppFile* file);
-    ~CompilationThread();
-
+    virtual ~CompilationThread();
     void ThreadFunction();
 
 private:
@@ -60,11 +59,11 @@ class URHO3D_API RCCpp : public Object
 
 public:
     RCCpp(Context* context);
-    ~RCCpp();
+    virtual ~RCCpp();
 
     bool ExecuteFile(const String& fileName);
     void CompileAsync(const RCCppFile& file);
-    bool CompileSync(const RCCppFile&file);
+    bool CompileSync(const RCCppFile& file);
     void Start();
     void Stop();
     bool ReloadLibrary();
@@ -80,7 +79,12 @@ public:
     void HandleClassPreLoaded(StringHash eventType, VariantMap& eventData);
     void HandleClassPostLoaded(StringHash eventType, VariantMap& eventData);
 
+    String GetLibraryName();
+    String GetLibraryPath();
+
 private:
+    String libraryName_;
+    String libraryPath_;
     RCCppFile* mainRCCppFile_;
     RCCppFile* rcCppFileCompiled_;
     SharedPtr<RCCppImpl> impl_;
