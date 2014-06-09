@@ -25,7 +25,11 @@
 #include "FileSystem.h"
 #include "File.h"
 
+#if defined(__APPLE__) || defined(__linux__)
 #include <unistd.h>
+#elif defined(_MINGW32__)
+#include <windows.h>
+#endif
 
 namespace Urho3D
 {
@@ -35,9 +39,13 @@ const String RCCppGppCompiler::makefile_ =  ""
         "\n"
         "CXX := g++\n"
         "\n"
-        "CPPFLAGS_DEBUG ?= -g\n"
+#ifdef DEBUG
+        "CPPFLAGS ?= -g\n"
+#else
+        "CPPFLAGS ?= -O2\n"
+#endif
         "\n"
-        "CPPFLAGS := -fPIC $(CPPFLAGS_DEBUG) -DURHO3D_LOGGING $(EXT_DEFINES) $(EXT_CPPFLAGS) \\\n"
+        "CPPFLAGS := -fPIC $(CPPFLAGS) -DURHO3D_LOGGING $(EXT_DEFINES) $(EXT_CPPFLAGS) \\\n"
         "-I$(URHO3D_HOME). \\\n"
         "-I$(URHO3D_HOME)/Build/Engine \\\n"
         "-I$(URHO3D_HOME)/Source/Engine/RCCpp \\\n"
@@ -62,9 +70,21 @@ const String RCCppGppCompiler::makefile_ =  ""
         "-I$(URHO3D_HOME)/Source/ThirdParty/kNet/include \\\n"
         "-I$(URHO3D_HOME)/Source/ThirdParty/SDL/include\n"
         "\n"
+#if defined(__APPLE__) || defined(__linux__)
         "LDFLAGS := -shared -L$(URHO3D_HOME)/Lib -lUrho3D $(EXT_LDFLAGS)\n"
+#elif defined(__MINGW32__)
+        "LDFLAGS := -shared -L$(URHO3D_HOME)/Bin -lUrho3D"
+#ifdef DEBUG
+        "_d"
+#endif
+        " $(EXT_LDFLAGS)\n"
+#endif
+#if defined(__APPLE__) || defined(__linux__)
         "RM := rm -rf\n"
-        "TARGET_LIB = $LIB_NAME\n"
+#elif defined(__MINGW32__)
+        "RM := rmdir /S /Q\n"
+#endif
+        "TARGET_LIB = $(LIB_NAME)\n"
         "\n"
         "SUBDIRS := $(wildcard */)\n"
         "SOURCES := $(wildcard *.cpp $(addsuffix *.cpp,$(SUBDIRS)))\n"
@@ -89,7 +109,7 @@ const String RCCppGppCompiler::makefile_ =  ""
         "	$(CXX) $(CPPFLAGS) -c -o $@ $^\n"
         "\n"
         "clean:\n"
-        "	$(RM) $(OBJ_DIR)\n"
+        "	$(RM) $(OBJ_DIR) $(LIB_NAME)\n"
         "\n"
         "PHONY: clean";
 
@@ -101,9 +121,11 @@ RCCppGppCompiler::RCCppGppCompiler(Context* context) :
 #ifdef __MINGW32__
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
-    cores_ = sysinfo.dwNumberOfProcessors;
+    int cores_ = sysinfo.dwNumberOfProcessors;
+    makeCommand_ = "mingw32-make -j" + String(cores_);
 #else
-    cores_ = sysconf(_SC_NPROCESSORS_ONLN);
+    int cores_ = sysconf(_SC_NPROCESSORS_ONLN);
+    makeCommand_ = "make -j" + String(cores_);
 #endif
 }
 
@@ -114,7 +136,7 @@ bool RCCppGppCompiler::CreateMakefile(const String& fileName, const String& libr
     {
         return false;
     }
-    String finalMakefile = makefile_.Replaced("$LIB_NAME", libraryName);
+    String finalMakefile = makefile_.Replaced("$(LIB_NAME)", libraryName);
     if (!makefile.WriteString(finalMakefile))
     {
         return false;
@@ -130,12 +152,11 @@ bool RCCppGppCompiler::Compile(const RCCppFile &file, const String& libraryPath)
         CreateMakefile(GetParentPath(libraryPath) +  "Makefile", GetFileNameAndExtension(libraryPath));
     }
 
-    String makeLine = "make -j" + String(cores_);
-    LOGDEBUG("RCCpp: Compiling using command line: " + makeLine + "\n");
+    LOGDEBUG("RCCpp: Compiling using command line: " + makeCommand_ + "\n");
     String origDir = fileSystem_->GetCurrentDir();
     fileSystem_->SetCurrentDir(GetParentPath(libraryPath).CString());
     String buildLog = "Build.log";
-    system(String(makeLine + " 1> " +  buildLog + " 2> " + buildLog).CString());
+    system(String(makeCommand_ + " 1> " +  buildLog + " 2> " + buildLog).CString());
     String result;
     File makefileOut(context_);
     if (makefileOut.Open(buildLog))

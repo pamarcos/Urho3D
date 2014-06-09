@@ -20,41 +20,48 @@
 // THE SOFTWARE.
 //
 
-#if defined(__APPLE__) | defined(__linux__)
+#if defined(WIN32)
 
-#include "RCCppUnix.h"
+#include "RCCppWin.h"
 #include "Log.h"
 #include "Urho3D.h"
 #include "FileSystem.h"
 #include "ResourceCache.h"
-#include "RCCppGppCompiler.h"
 
 #include <stdio.h>
-#include "dlfcn.h"
+#include <windows.h>
+
+#ifdef __MINGW32__
+#include "RCCppGppCompiler.h"
+#endif
 
 namespace Urho3D
 {
 
-RCCppUnix::RCCppUnix(Context* context) :
+RCCppWin::RCCppWin(Context* context) :
     RCCppImpl(context),
     library_(NULL),
     createObject_(NULL),
-    destroyObject_(NULL),
-    compiler_(new RCCppGppCompiler(context_))
+    destroyObject_(NULL)
 {
+#ifdef __MINGW32__
+    compiler_ = new RCCppGppCompiler(context_);
+#else
+#error "MSVC not supported"
+#endif
 }
 
-RCCppUnix::~RCCppUnix()
+RCCppWin::~RCCppWin()
 {
     UnloadLib();
 }
 
-bool RCCppUnix::Compile(const RCCppFile& file, const String& libraryPath)
+bool RCCppWin::Compile(const RCCppFile& file, const String& libraryPath)
 {
     return compiler_->Compile(file, libraryPath);
 }
 
-RCCppObject* RCCppUnix::CreateObject(const String &objectName)
+RCCppObject* RCCppWin::CreateObject(const String &objectName)
 {
     if (createObject_ != NULL)
     {
@@ -67,7 +74,7 @@ RCCppObject* RCCppUnix::CreateObject(const String &objectName)
     }
 }
 
-void RCCppUnix::DestroyObject(RCCppObject *object)
+void RCCppWin::DestroyObject(RCCppObject *object)
 {
     if (object != NULL)
     {
@@ -82,14 +89,14 @@ void RCCppUnix::DestroyObject(RCCppObject *object)
     }
 }
 
-bool RCCppUnix::LoadLib(const String& libraryPath)
+bool RCCppWin::LoadLib(const String& libraryPath)
 {
-    library_ = dlopen(libraryPath.CString(), RTLD_LAZY);
+    library_ = LoadLibrary(libraryPath.CString());
     if (library_ != NULL)
     {
         String name = GetFileName(libraryPath);
-        createObject_ = (PCreateRCCppObject)dlsym(library_, String("create" + name).CString());
-        destroyObject_ = (PDestroyRCCppObject)dlsym(library_, String("destroy" + name).CString());
+        createObject_ = (PCreateRCCppObject)GetProcAddress(library_, String("create" + name).CString());
+        destroyObject_ = (PDestroyRCCppObject)GetProcAddress(library_, String("destroy" + name).CString());
     }
 
     if (library_ == NULL)
@@ -102,11 +109,11 @@ bool RCCppUnix::LoadLib(const String& libraryPath)
     }
 }
 
-void RCCppUnix::UnloadLib()
+void RCCppWin::UnloadLib()
 {
     if (library_ != NULL)
     {
-        dlclose(library_);
+        FreeLibrary(library_);
         library_ = NULL;
         mainObject_ = NULL;
     }

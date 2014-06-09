@@ -23,6 +23,8 @@
 #ifndef RCCPPUNIX_H
 #define RCCPPUNIX_H
 
+#if defined(__APPLE__) | defined(__linux__)
+
 #include "Object.h"
 #include "Context.h"
 #include "RCCppImpl.h"
@@ -44,8 +46,8 @@ public:
     ~RCCppUnix();
 
     bool Compile(const RCCppFile& file, const String& libraryPath);
-    bool LoadLibrary(const String& libraryPath);
-    void UnloadLibrary();
+    bool LoadLib(const String& libraryPath);
+    void UnloadLib();
 
     RCCppObject* CreateObject(const String& objectName);
     void DestroyObject(RCCppObject* object);
@@ -58,5 +60,7 @@ private:
 };
 
 }
+
+#endif
 
 #endif // RCCPPUNIX_H

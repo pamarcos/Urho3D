@@ -32,10 +32,10 @@
 #include "Engine.h"
 #include "Condition.h"
 
-#if defined(__APPLE_CC__) || defined(BSD) || defined(__linux__) || defined(__MINGW32__)
+#if defined(__APPLE__)|| defined(__linux__)
 #include "RCCppUnix.h"
-#elif define (_WIN32)
-#error "Not implemented"
+#elif defined (WIN32)
+#include "RCCppWin.h"
 #endif
 
 namespace Urho3D
@@ -49,10 +49,10 @@ RCCpp::RCCpp(Context* context) :
     firstCompilation_(true),
     compilationFinished_(false)
 {
-#if defined(__APPLE_CC__) || defined(BSD) || defined(__linux__) || defined(__MINGW32__)
+#if defined(__APPLE__) || defined(__linux__)
     impl_ = new RCCppUnix(context);
-#elif
-#error "Not implemented"
+#else
+    impl_ = new RCCppWin(context);
 #endif
 
     context_->RegisterFactory<RCCppFile>();
@@ -75,7 +75,7 @@ bool RCCpp::ExecuteFile(const String &fileName)
     SplitPath(fileName, path, name, ext);
     libraryPath_ = path + name;
 
-#ifdef _WIN32
+#ifdef WIN32
     if (GetExtension(libraryPath_) != ".dll")
     {
         libraryPath_.Append(".dll");
@@ -191,9 +191,9 @@ bool RCCpp::ReloadLibrary()
         SendEvent(E_RCCPP_CLASS_PRELOADED, classPreEventData);
     }
 
-    impl_->UnloadLibrary();
+    impl_->UnloadLib();
 
-    if (impl_->LoadLibrary(libraryPath_))
+    if (impl_->LoadLib(libraryPath_))
     {
         {
             using namespace RCCppLibraryPostLoaded;

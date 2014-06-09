@@ -44,6 +44,7 @@ public:
     bool Compile(const RCCppFile& file, const String& libraryPath);
 
 private:
+    String makeCommand_;
     static const String makefile_;
     int cores_;
     FileSystem* fileSystem_;

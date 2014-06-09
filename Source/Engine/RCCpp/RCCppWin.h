@@ -20,40 +20,48 @@
 // THE SOFTWARE.
 //
 
-#ifndef RCCPPIMPL_H
-#define RCCPPIMPL_H
+#ifndef RCCPPUNIX_H
+#define RCCPPUNIX_H
+
+#if defined(WIN32)
 
 #include "Object.h"
 #include "Context.h"
-#include "RCCppFile.h"
-#include "RCCppObject.h"
+#include "RCCppImpl.h"
+#include "RCCppCompiler.h"
+#include <windows.h>
 
 namespace Urho3D
 {
 
 class RCCppMainObject;
+class RCCppObject;
+class RCCppCompiler;
 
-class URHO3D_API RCCppImpl : public Object
+class URHO3D_API RCCppWin : public RCCppImpl
 {
-    OBJECT(RCCppImpl);
+    OBJECT(RCCppWin);
 
 public:
-    RCCppImpl(Context* context);
-    virtual ~RCCppImpl();
+    RCCppWin(Context* context);
+    ~RCCppWin();
 
-    /// Execute script file. Return true if successful.
-    virtual bool Compile(const RCCppFile& file, const String& libraryPath) = 0;
-    virtual void Start(const String& libraryName);
-    virtual void Stop();
-    virtual bool LoadLib(const String& libraryPath) = 0;
-    virtual void UnloadLib() = 0;
-    virtual RCCppObject* CreateObject(const String& objectName) = 0;
-    virtual void DestroyObject(RCCppObject* object) = 0;
+    bool Compile(const RCCppFile& file, const String& libraryPath);
+    bool LoadLib(const String& libraryPath);
+    void UnloadLib();
 
-protected:
-    RCCppMainObject* mainObject_;
+    RCCppObject* CreateObject(const String& objectName);
+    void DestroyObject(RCCppObject* object);
+
+private:
+    SharedPtr<RCCppCompiler> compiler_;
+    HMODULE library_;
+    PCreateRCCppObject createObject_;
+    PDestroyRCCppObject destroyObject_;
 };
 
 }
 
-#endif // RCCPPIMPL_H
+#endif
+
+#endif // RCCPPUNIX_H
