@@ -27,6 +27,7 @@
 
 #if defined(__APPLE__) || defined(__linux__)
 #include <unistd.h>
+#include <stdio.h>
 #elif defined(_MINGW32__)
 #include <windows.h>
 #endif
@@ -143,6 +144,7 @@ bool RCCppGppCompiler::CreateMakefile(const String& fileName, const String& libr
     }
     makefile.Flush();
     makefile.Close();
+    return true;
 }
 
 bool RCCppGppCompiler::Compile(const RCCppFile &file, const String& libraryPath)
@@ -156,13 +158,38 @@ bool RCCppGppCompiler::Compile(const RCCppFile &file, const String& libraryPath)
     String origDir = fileSystem_->GetCurrentDir();
     fileSystem_->SetCurrentDir(GetParentPath(libraryPath).CString());
     String buildLog = "Build.log";
-    system(String(makeCommand_ + " 1> " +  buildLog + " 2> " + buildLog).CString());
-    String result;
-    File makefileOut(context_);
-    if (makefileOut.Open(buildLog))
+
+#if defined(__APPLE__) || defined(__linux__)
+    FILE* pipe = popen((makeCommand_ + " 2>&1").CString(), "r");
+#elif defined(__MINGW32__)
+    FILE* pipe = _popen((makeCommand_ + " 2>&1").CString(), "r");
+#endif
+    if (!pipe)
     {
-        result = makefileOut.ReadString();
+        return false;
     }
+    char buffer[128];
+    String result;
+    while (!feof(pipe))
+    {
+        if (fgets(buffer, sizeof(buffer), pipe) != NULL)
+        {
+            result.Append(buffer);
+        }
+    }
+#if defined(__APPLE__) || defined(__linux__)
+    pclose(pipe);
+#elif defined(__MINGW32__)
+    _pclose(pipe);
+#endif
+    File makefileOut(context_);
+    if (makefileOut.Open(buildLog, FILE_WRITE))
+    {
+        makefileOut.WriteString(result);
+    }
+    makefileOut.Flush();
+    makefileOut.Close();
+
     fileSystem_->SetCurrentDir(origDir);
 
     LOGDEBUG(result);

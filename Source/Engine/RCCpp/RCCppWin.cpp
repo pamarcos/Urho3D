@@ -121,4 +121,7 @@ void RCCppWin::UnloadLib()
 
 }
 
+#else
+// To avoid ranlib complaining about RCCppWin.cpp having no symbols
+void RCCppWinDummy() {}
 #endif
