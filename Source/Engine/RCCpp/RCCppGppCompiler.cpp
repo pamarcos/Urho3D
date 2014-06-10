@@ -46,6 +46,11 @@ const String RCCppGppCompiler::makefile_ =  ""
 #else
         "CPPFLAGS ?= -O2\n"
 #endif
+#ifdef __x86_64__
+        "CPPFLAGS := $(CPPFLAGS) -m64\n"
+#else
+        "CPPFLAGS := $(CPPFLAGS) -m32\n"
+#endif
         "\n"
         "CPPFLAGS := -fPIC $(CPPFLAGS) -DURHO3D_LOGGING $(EXT_DEFINES) $(EXT_CPPFLAGS) \\\n"
         "-I$(URHO3D_HOME). \\\n"
@@ -164,11 +169,12 @@ bool RCCppGppCompiler::Compile(const RCCppFile &file, const String& libraryPath)
     fileSystem_->SetCurrentDir(GetParentPath(libraryPath).CString());
     String buildLog = "Build.log";
 
-#if defined(__APPLE__) || defined(__linux__)
-    FILE* pipe = popen((makeCommand_ + " 2>&1").CString(), "r");
-#elif defined(__MINGW32__)
-    FILE* pipe = _popen((makeCommand_ + " 2>&1").CString(), "r");
+#ifdef __MINGW32__
+#define popen _popen
+#define pclose _pclose
 #endif
+
+    FILE* pipe = popen((makeCommand_ + " 2>&1").CString(), "r");
     if (!pipe)
     {
         return false;
@@ -182,11 +188,7 @@ bool RCCppGppCompiler::Compile(const RCCppFile &file, const String& libraryPath)
             result.Append(buffer);
         }
     }
-#if defined(__APPLE__) || defined(__linux__)
     pclose(pipe);
-#elif defined(__MINGW32__)
-    _pclose(pipe);
-#endif
     File makefileOut(context_);
     if (makefileOut.Open(buildLog, FILE_WRITE))
     {

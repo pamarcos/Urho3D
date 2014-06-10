@@ -27,6 +27,7 @@
 #include "Urho3D.h"
 #include "FileSystem.h"
 #include "ResourceCache.h"
+#include "FileSystem.h"
 
 #include <stdio.h>
 #include <windows.h>
@@ -42,7 +43,9 @@ RCCppWin::RCCppWin(Context* context) :
     RCCppImpl(context),
     library_(NULL),
     createObject_(NULL),
-    destroyObject_(NULL)
+    destroyObject_(NULL),
+    firstCompilation_(true),
+    fileSystem_(context_->GetSubsystem<FileSystem>())
 {
 #ifdef __MINGW32__
     compiler_ = new RCCppGppCompiler(context_);
@@ -58,6 +61,15 @@ RCCppWin::~RCCppWin()
 
 bool RCCppWin::Compile(const RCCppFile& file, const String& libraryPath)
 {
+    // Windows throws a file access error when trying to compile a loaded library.
+    // It allows to change its name, though. So, we change its name, compile and then remove
+    // the file when we unload the library.
+    if (!firstCompilation_)
+    {
+        oldLibPath_ = libraryPath + ".old";
+        fileSystem_->Rename(libraryPath, oldLibPath_);
+    }
+    firstCompilation_ = false;
     return compiler_->Compile(file, libraryPath);
 }
 
@@ -116,6 +128,12 @@ void RCCppWin::UnloadLib()
         FreeLibrary(library_);
         library_ = NULL;
         mainObject_ = NULL;
+
+        if (!oldLibPath_.Empty())
+        {
+            fileSystem_->Delete(oldLibPath_);
+            oldLibPath_.Clear();
+        }
     }
 }
 
