@@ -133,6 +133,11 @@ void RCCpp::CompileAsync(const RCCppFile& file)
     eventData[P_FILE] = reinterpret_cast<void*>(const_cast<RCCppFile*>(&file));
     SendEvent(E_RCCPP_COMPILATION_STARTED, eventData);
 
+#ifdef (WIN32)
+    impl_->Stop();
+    impl_->UnloadLib();
+#endif
+
     compilationThread_ = new CompilationThread(context_, this, &(const_cast<RCCppFile&>(file)));
     compilationThread_->AddRef();
     compilationThread_->Run();
@@ -191,7 +196,9 @@ bool RCCpp::ReloadLibrary()
         SendEvent(E_RCCPP_CLASS_PRELOADED, classPreEventData);
     }
 
+#if defined(__APPLE__) || defined(__linux__)
     impl_->UnloadLib();
+#endif
 
     if (impl_->LoadLib(libraryPath_))
     {
@@ -255,7 +262,9 @@ void RCCpp::HandlePostUpdate(StringHash eventType, VariantMap &eventData)
 
         if (!firstCompilation_)
         {
+#if defined(__APPLE__) || defined(__linux__)
             impl_->Stop();
+#endif
             ReloadLibrary();
             impl_->Start(libraryName_);
         }

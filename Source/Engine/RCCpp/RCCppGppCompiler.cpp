@@ -27,10 +27,11 @@
 
 #if defined(__APPLE__) || defined(__linux__)
 #include <unistd.h>
-#include <stdio.h>
-#elif defined(_MINGW32__)
+#elif defined(__MINGW32__)
 #include <windows.h>
 #endif
+
+#include <stdio.h>
 
 namespace Urho3D
 {
@@ -81,9 +82,11 @@ const String RCCppGppCompiler::makefile_ =  ""
         " $(EXT_LDFLAGS)\n"
 #endif
 #if defined(__APPLE__) || defined(__linux__)
-        "RM := rm -rf\n"
+        "RMDIR := rm -rf\n"
+        "RM := $(RMDIR)"
 #elif defined(__MINGW32__)
-        "RM := rmdir /S /Q\n"
+        "RMDIR := rmdir /S /Q\n"
+        "RM := del /S /Q\n"
 #endif
         "TARGET_LIB = $(LIB_NAME)\n"
         "\n"
@@ -93,24 +96,26 @@ const String RCCppGppCompiler::makefile_ =  ""
         "OBJ_FILES := $(addprefix $(OBJ_DIR)/,$(notdir $(SOURCES:.cpp=.o)))\n"
         "\n"
         "all: $(TARGET_LIB)\n"
-        "	@echo Compilation complete\n"
+        "\t@echo Compilation complete\n"
         "\n"
         "$(TARGET_LIB): $(OBJ_FILES)\n"
-        "	@echo Linking objects\n"
-        "	$(CXX) $(LDFLAGS) -o $@ $^\n"
+        "\t@echo Linking objects\n"
+        "\t$(CXX) $(LDFLAGS) -o $@ $^\n"
         "\n"
-        "$(OBJ_DIR)/%.o: %.cpp\n"
-        "	@mkdir -p $(OBJ_DIR)\n"
-        "	@echo Compiling file $@\n"
-        "	$(CXX) $(CPPFLAGS) -c -o $@ $^\n"
+        "$(OBJ_DIR)/%.o: %.cpp | $(OBJ_DIR)\n"
+        "\t@echo Compiling file $@\n"
+        "\t$(CXX) $(CPPFLAGS) -c -o $@ $^\n"
         "\n"
-        "$(OBJ_DIR)/%.o: */%.cpp\n"
-        "	@mkdir -p $(OBJ_DIR)\n"
-        "	@echo Compiling file $@\n"
-        "	$(CXX) $(CPPFLAGS) -c -o $@ $^\n"
+        "$(OBJ_DIR)/%.o: */%.cpp | $(OBJ_DIR)\n"
+        "\t@echo Compiling file $@\n"
+        "\t$(CXX) $(CPPFLAGS) -c -o $@ $^\n"
+        "\n"
+        "$(OBJ_DIR):\n"
+        "\tmkdir -p $(OBJ_DIR)\n"
         "\n"
         "clean:\n"
-        "	$(RM) $(OBJ_DIR) $(LIB_NAME)\n"
+        "\t$(RMDIR) $(OBJ_DIR)\n"
+        "\t$(RM) $(TARGET_LIB)\n"
         "\n"
         "PHONY: clean";
 
