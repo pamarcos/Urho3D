@@ -42,17 +42,17 @@ const String RCCppGppCompiler::makefile_ =  ""
         "CXX := g++\n"
         "\n"
 #ifdef DEBUG
-        "CPPFLAGS ?= -g\n"
+        "CPP_DEBUG_FLAGS ?= -g\n"
 #else
-        "CPPFLAGS ?= -O2\n"
+        "CPP_DEBUG_FLAGS ?= -O2\n"
 #endif
 #ifdef __x86_64__
-        "CPPFLAGS := $(CPPFLAGS) -m64\n"
+        "CPPFLAGS := -m64\n"
 #else
-        "CPPFLAGS := $(CPPFLAGS) -m32\n"
+        "CPPFLAGS := -m32\n"
 #endif
         "\n"
-        "CPPFLAGS := -fPIC $(CPPFLAGS) -DURHO3D_LOGGING $(EXT_DEFINES) $(EXT_CPPFLAGS) \\\n"
+        "CPPFLAGS := -fPIC $(CPP_DEBUG_FLAGS) $(CPPFLAGS) -DURHO3D_LOGGING $(EXT_DEFINES) $(EXT_CPPFLAGS) \\\n"
         "-I$(URHO3D_HOME). \\\n"
         "-I$(URHO3D_HOME)/Build/Engine \\\n"
         "-I$(URHO3D_HOME)/Source/Engine/RCCpp \\\n"
@@ -77,10 +77,15 @@ const String RCCppGppCompiler::makefile_ =  ""
         "-I$(URHO3D_HOME)/Source/ThirdParty/kNet/include \\\n"
         "-I$(URHO3D_HOME)/Source/ThirdParty/SDL/include\n"
         "\n"
+#ifdef __x86_64__
+        "LDFLAGS := -m64\n"
+#else
+        "LDFLAGS := -m32\n"
+#endif
 #if defined(__APPLE__) || defined(__linux__)
-        "LDFLAGS := -shared -L$(URHO3D_HOME)/Lib -lUrho3D $(EXT_LDFLAGS)\n"
+        "LDFLAGS := $(LDFLAGS) -shared -L$(URHO3D_HOME)/Lib -lUrho3D $(EXT_LDFLAGS)\n"
 #elif defined(__MINGW32__)
-        "LDFLAGS := -shared -L$(URHO3D_HOME)/Bin -lUrho3D"
+        "LDFLAGS := $(LDFLAGS) -shared -L$(URHO3D_HOME)/Bin -lUrho3D"
 #ifdef DEBUG
         "_d"
 #endif
