@@ -88,7 +88,14 @@ bool RCCpp::ExecuteFile(const String &fileName)
 #endif
 
     compilationSuccesful_ = CompileSync(*mainRCCppFile_);
-    return ReloadLibrary();
+    if (compilationSuccesful_)
+    {
+        return ReloadLibrary(libraryPath_);
+    }
+    else
+    {
+        return false;
+    }
 }
 
 void RCCpp::SubscribeToEvents()
@@ -115,6 +122,7 @@ bool RCCpp::CompileSync(const RCCppFile &file)
     {
         LOGERROR("Error compiling file " + file.GetName());
         compilationSuccesful_ = false;
+        return false;
     }
     else
     {
@@ -173,14 +181,43 @@ void RCCpp::Stop()
     }
 }
 
-bool RCCpp::ReloadLibrary()
+bool RCCpp::LoadLibrary(const String &libraryPath)
+{
+    compilationSuccesful_ = true;
+    libraryPath_ = libraryPath;
+    {
+        using namespace RCCppLibraryPreloaded;
+        VariantMap& libPreEventData = GetEventDataMap();
+        libPreEventData[P_LIBRARY] = libraryPath_;
+        SendEvent(E_RCCPP_LIBRARY_PRELOADED, libPreEventData);
+    }
+
+    if (impl_->LoadLib(libraryPath_))
+    {
+        {
+            using namespace RCCppLibraryPostLoaded;
+            VariantMap& libPostEventData = GetEventDataMap();
+            libPostEventData[P_LIBRARY] = libraryPath_;
+            SendEvent(E_RCCPP_LIBRARY_POSTLOADED, libPostEventData);
+        }
+
+        return true;
+    }
+    else
+    {
+        LOGERROR("Could not load library " + libraryPath_);
+        return false;
+    }
+}
+
+bool RCCpp::ReloadLibrary(const String& libraryPath)
 {
     String className = GetFileName(rcCppFileCompiled_->GetName());
 
     {
         using namespace RCCppLibraryPreloaded;
         VariantMap& libPreEventData = GetEventDataMap();
-        libPreEventData[P_LIBRARY] = libraryPath_;
+        libPreEventData[P_LIBRARY] = libraryPath;
         SendEvent(E_RCCPP_LIBRARY_PRELOADED, libPreEventData);
     }
 
@@ -192,12 +229,12 @@ bool RCCpp::ReloadLibrary()
     }
 
     impl_->UnloadLib();
-    if (impl_->LoadLib(libraryPath_))
+    if (impl_->LoadLib(libraryPath))
     {
         {
             using namespace RCCppLibraryPostLoaded;
             VariantMap& libPostEventData = GetEventDataMap();
-            libPostEventData[P_LIBRARY] = libraryPath_;
+            libPostEventData[P_LIBRARY] = libraryPath;
             SendEvent(E_RCCPP_LIBRARY_POSTLOADED, libPostEventData);
         }
 
@@ -212,6 +249,7 @@ bool RCCpp::ReloadLibrary()
     }
     else
     {
+        LOGERROR("Could not load library " + libraryPath);
         return false;
     }
 }
@@ -238,7 +276,7 @@ void RCCpp::HandleRCCppFileChanged(StringHash eventType, VariantMap& eventData)
 
 void RCCpp::HandlePostUpdate(StringHash eventType, VariantMap &eventData)
 {
-    if (compilationFinished_)
+    if (compilationFinished_ && compilationSuccesful_)
     {
         SendCompilationFinishedEvent(compilationSuccesful_, *rcCppFileCompiled_);
 
@@ -250,7 +288,7 @@ void RCCpp::HandlePostUpdate(StringHash eventType, VariantMap &eventData)
         if (!firstCompilation_)
         {
             impl_->Stop();
-            ReloadLibrary();
+            ReloadLibrary(libraryPath_);
             impl_->Start(libraryName_);
         }
         else

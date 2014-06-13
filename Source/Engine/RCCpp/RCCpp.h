@@ -66,7 +66,8 @@ public:
     bool CompileSync(const RCCppFile& file);
     void Start();
     void Stop();
-    bool ReloadLibrary();
+    bool LoadLibrary(const String& libraryPath);
+    bool ReloadLibrary(const String& libraryPath);
     void SendCompilationFinishedEvent(bool successful, const RCCppFile& file);
     void SubscribeToEvents();
 

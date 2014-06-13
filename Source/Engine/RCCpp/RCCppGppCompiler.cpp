@@ -93,12 +93,12 @@ const String RCCppGppCompiler::makefile_ =  ""
 #endif
 #if defined(__APPLE__) || defined(__linux__)
         "RMDIR := rm -rf\n"
-        "RM := $(RMDIR)"
+        "RM := $(RMDIR)\n"
 #elif defined(__MINGW32__)
         "RMDIR := rmdir /S /Q\n"
         "RM := del /S /Q\n"
 #endif
-        "TARGET_LIB = $(LIB_NAME)\n"
+        "TARGET_LIB := $(LIB_NAME)\n"
         "\n"
         "SUBDIRS := $(wildcard */)\n"
         "SOURCES := $(wildcard *.cpp $(addsuffix *.cpp,$(SUBDIRS)))\n"

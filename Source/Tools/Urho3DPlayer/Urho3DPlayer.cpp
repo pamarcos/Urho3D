@@ -133,7 +133,7 @@ void Urho3DPlayer::Setup()
 void Urho3DPlayer::Start()
 {
     String extension = GetExtension(scriptFileName_);
-    if (extension != ".lua" && extension != ".luc" && extension != ".cpp")
+    if (extension != ".lua" && extension != ".luc" && extension != ".cpp" && extension != ".so" && extension != ".dll")
     {
 #ifdef URHO3D_ANGELSCRIPT
         // Instantiate and register the AngelScript subsystem
@@ -161,16 +161,27 @@ void Urho3DPlayer::Start()
         return;
 #endif
     } 
-    else if (extension == ".cpp")
+    else if (extension == ".cpp" || extension == ".so" || extension == ".dll")
     {
 #ifdef URHO3D_RCCPP
         RCCpp* rcCpp = new RCCpp(context_);
         context_->RegisterSubsystem(rcCpp);
 
-        if (rcCpp->ExecuteFile(scriptFileName_))
+        if (extension == ".cpp")
         {
-            rcCpp->Start();
-            return;
+            if (rcCpp->ExecuteFile(scriptFileName_))
+            {
+                rcCpp->Start();
+                return;
+            }
+        }
+        else
+        {
+            if (rcCpp->LoadLibrary(scriptFileName_))
+            {
+                rcCpp->Start();
+                return;
+            }
         }
 #else
         ErrorExit("RCCpp is not enabled!");
