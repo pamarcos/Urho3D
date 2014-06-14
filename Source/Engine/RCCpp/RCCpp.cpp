@@ -212,6 +212,10 @@ bool RCCpp::LoadLibrary(const String &libraryPath)
 
 bool RCCpp::ReloadLibrary(const String& libraryPath)
 {
+    if (!compilationSuccesful_)
+    {
+        return false;
+    }
     String className = GetFileName(rcCppFileCompiled_->GetName());
 
     {
@@ -276,7 +280,7 @@ void RCCpp::HandleRCCppFileChanged(StringHash eventType, VariantMap& eventData)
 
 void RCCpp::HandlePostUpdate(StringHash eventType, VariantMap &eventData)
 {
-    if (compilationFinished_ && compilationSuccesful_)
+    if (compilationFinished_)
     {
         SendCompilationFinishedEvent(compilationSuccesful_, *rcCppFileCompiled_);
 
@@ -285,15 +289,18 @@ void RCCpp::HandlePostUpdate(StringHash eventType, VariantMap &eventData)
             compilationThread_->ReleaseRef();
         }
 
-        if (!firstCompilation_)
+        if (compilationSuccesful_)
         {
-            impl_->Stop();
-            ReloadLibrary(libraryPath_);
-            impl_->Start(libraryName_);
-        }
-        else
-        {
-            firstCompilation_ = false;
+            if (!firstCompilation_)
+            {
+                impl_->Stop();
+                ReloadLibrary(libraryPath_);
+                impl_->Start(libraryName_);
+            }
+            else
+            {
+                firstCompilation_ = false;
+            }
         }
 
         compilationFinished_ = false;
@@ -368,13 +375,12 @@ CompilationThread::~CompilationThread()
 void CompilationThread::ThreadFunction()
 {
     rcCpp_->rcCppFileCompiled_ = rcCppFile_;
-    if (!rcCpp_->impl_->Compile(*rcCppFile_, rcCpp_->libraryPath_))
+    rcCpp_->compilationSuccesful_ = rcCpp_->impl_->Compile(*rcCppFile_, rcCpp_->libraryPath_);
+    if (!rcCpp_->compilationSuccesful_ )
     {
         LOGERROR("Error compiling file " + rcCppFile_->GetName());
-        rcCpp_->compilationSuccesful_ = false;
     }
     rcCpp_->compilationFinished_ = true;
-    rcCpp_->compilationSuccesful_ = true;
 }
 
 }

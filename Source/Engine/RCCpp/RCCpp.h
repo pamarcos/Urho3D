@@ -32,9 +32,11 @@
 
 namespace Urho3D
 {
-    class ResourceCache;
-    class RCCpp;
-    class Condition;
+
+class ResourceCache;
+class RCCpp;
+class Condition;
+class UI;
 
 class URHO3D_API CompilationThread : public Object, public Thread
 {
@@ -62,14 +64,21 @@ public:
     virtual ~RCCpp();
 
     bool ExecuteFile(const String& fileName);
-    void CompileAsync(const RCCppFile& file);
-    bool CompileSync(const RCCppFile& file);
+
     void Start();
     void Stop();
     bool LoadLibrary(const String& libraryPath);
+
+    String GetLibraryName();
+    String GetLibraryPath();
+
+private:
     bool ReloadLibrary(const String& libraryPath);
     void SendCompilationFinishedEvent(bool successful, const RCCppFile& file);
     void SubscribeToEvents();
+
+    void CompileAsync(const RCCppFile& file);
+    bool CompileSync(const RCCppFile& file);
 
     void HandlePostUpdate(StringHash eventType, VariantMap& eventData);
     void HandleRCCppFileChanged(StringHash eventType, VariantMap& eventData);
@@ -80,16 +89,13 @@ public:
     void HandleClassPreLoaded(StringHash eventType, VariantMap& eventData);
     void HandleClassPostLoaded(StringHash eventType, VariantMap& eventData);
 
-    String GetLibraryName();
-    String GetLibraryPath();
-
-private:
     String libraryName_;
     String libraryPath_;
     RCCppFile* mainRCCppFile_;
     RCCppFile* rcCppFileCompiled_;
     SharedPtr<RCCppImpl> impl_;
     ResourceCache* cache_;
+    UI* ui_;
     bool compilationSuccesful_;
     SharedPtr<CompilationThread> compilationThread_;
     bool firstCompilation_;
