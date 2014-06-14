@@ -9,6 +9,7 @@ class MyClass : public RCCppObject
 
 public:
     MyClass(Context* context);
+    ~MyClass();
 
     void PrintSomething();
 };

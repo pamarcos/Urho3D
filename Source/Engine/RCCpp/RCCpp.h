@@ -25,10 +25,12 @@
 
 #include "Object.h"
 #include "Context.h"
-#include "FileWatcher.h"
 #include "RCCppImpl.h"
 #include "RCCppFile.h"
 #include "Thread.h"
+#include "UIElement.h"
+#include "Text.h"
+#include "Window.h"
 
 namespace Urho3D
 {
@@ -36,7 +38,6 @@ namespace Urho3D
 class ResourceCache;
 class RCCpp;
 class Condition;
-class UI;
 
 class URHO3D_API CompilationThread : public Object, public Thread
 {
@@ -95,11 +96,13 @@ private:
     RCCppFile* rcCppFileCompiled_;
     SharedPtr<RCCppImpl> impl_;
     ResourceCache* cache_;
-    UI* ui_;
     bool compilationSuccesful_;
     SharedPtr<CompilationThread> compilationThread_;
     bool firstCompilation_;
     bool compilationFinished_;
+
+    SharedPtr<Window> uiWindow_;
+    SharedPtr<Text> uiText_;
 };
 
 }

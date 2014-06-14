@@ -29,6 +29,8 @@ namespace Urho3D
     class UIElement;
 }
 
+class MyClass;
+
 class RCCppTest : public RCCppMainObject
 {
     OBJECT(RCCppTest);
@@ -56,6 +58,10 @@ private:
     /// Handle key down event to process key controls common to all samples.
     void HandleKeyDown(StringHash eventType, VariantMap& eventData);
 
+    void HandleClassPreLoaded(StringHash eventType, VariantMap& eventData);
+    void HandleClassPostLoaded(StringHash eventType, VariantMap& eventData);
+    void HandleLibraryPostLoaded(StringHash eventType, VariantMap& eventData);
+
     /// Sprite nodes.
     Vector<SharedPtr<Node> > spriteNodes_;
 
@@ -65,4 +71,6 @@ private:
     SharedPtr<Node> cameraNode_;
 
     SharedPtr<UIElement> uiElement_;
+
+    SharedPtr<MyClass> myClass_;
 };

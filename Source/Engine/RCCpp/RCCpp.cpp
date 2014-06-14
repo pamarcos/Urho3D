@@ -31,6 +31,8 @@
 #include "RCCppFile.h"
 #include "Engine.h"
 #include "Condition.h"
+#include "UI.h"
+#include "Font.h"
 
 #if defined(__APPLE__)|| defined(__linux__)
 #include "RCCppUnix.h"
@@ -47,7 +49,8 @@ RCCpp::RCCpp(Context* context) :
     rcCppFileCompiled_(NULL),
     compilationSuccesful_(false),
     firstCompilation_(true),
-    compilationFinished_(false)
+    compilationFinished_(false),
+    cache_(GetSubsystem<ResourceCache>())
 {
 #if defined(__APPLE__) || defined(__linux__)
     impl_ = new RCCppUnix(context);
@@ -56,8 +59,18 @@ RCCpp::RCCpp(Context* context) :
 #endif
 
     context_->RegisterFactory<RCCppFile>();
-    cache_ = GetSubsystem<ResourceCache>();
     cache_->SetAutoReloadResources(true);
+
+    uiWindow_ = GetSubsystem<UI>()->GetRoot()->CreateChild<Window>();
+    uiWindow_->SetVisible(false);
+    uiWindow_->SetColor(Color::BLACK);
+    uiWindow_->SetPosition(0, 0);
+    uiWindow_->SetSize(200, 50);
+    uiWindow_->SetOpacity(0.5f);
+    uiText_ = uiWindow_->CreateChild<Text>();
+    uiText_->SetText("Compiling...");
+    uiText_->SetFont(cache_->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
+    uiText_->SetAlignment(HA_CENTER, VA_CENTER);
 }
 
 RCCpp::~RCCpp()
@@ -136,6 +149,7 @@ bool RCCpp::CompileSync(const RCCppFile &file)
 
 void RCCpp::CompileAsync(const RCCppFile& file)
 {
+    uiWindow_->SetVisible(true);
     using namespace RCCppCompilationStarted;
     VariantMap& eventData = GetEventDataMap();
     eventData[P_FILE] = reinterpret_cast<void*>(const_cast<RCCppFile*>(&file));
@@ -282,6 +296,7 @@ void RCCpp::HandlePostUpdate(StringHash eventType, VariantMap &eventData)
 {
     if (compilationFinished_)
     {
+        uiWindow_->SetVisible(false);
         SendCompilationFinishedEvent(compilationSuccesful_, *rcCppFileCompiled_);
 
         if (compilationThread_.Get() != NULL)

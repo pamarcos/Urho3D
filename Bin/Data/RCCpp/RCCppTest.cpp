@@ -52,11 +52,13 @@
 #include "Log.h"
 
 #include "Subdir/MyClass.h"
+#include "RCCppEvents.h"
+#include "RCCpp.h"
 
 RCCPP_OBJECT(RCCppTest);
 
 // Number of static sprites to draw
-static const unsigned NUM_SPRITES = 200;
+static const unsigned NUM_SPRITES = 100;
 static const ShortStringHash VAR_MOVESPEED("MoveSpeed");
 static const ShortStringHash VAR_ROTATESPEED("RotateSpeed");
 
@@ -85,8 +87,9 @@ RCCppTest::~RCCppTest()
 void RCCppTest::Start()
 {
     LOGINFO("RCCppTest::Start");
-    MyClass myClass(context_);
-    myClass.PrintSomething();
+
+    myClass_ = new MyClass(context_);
+    myClass_->PrintSomething();
 }
 
 void RCCppTest::Stop()
@@ -228,6 +231,40 @@ void RCCppTest::SubscribeToEvents()
 
     // Subscribe key down event
     SubscribeToEvent(E_KEYDOWN, HANDLER(RCCppTest, HandleKeyDown));
+
+    SubscribeToEvent(E_RCCPP_CLASS_PRELOADED, HANDLER(RCCppTest, HandleClassPreLoaded));
+    SubscribeToEvent(E_RCCPP_CLASS_POSTLOADED, HANDLER(RCCppTest, HandleClassPostLoaded));
+
+    SubscribeToEvent(E_RCCPP_LIBRARY_POSTLOADED, HANDLER(RCCppTest, HandleLibraryPostLoaded));
+}
+
+void RCCppTest::HandleClassPreLoaded(StringHash eventType, VariantMap &eventData)
+{
+    using namespace RCCppClassPreLoaded;
+    String classLoaded = eventData[P_CLASS_NAME].GetString();
+
+    if (classLoaded == MyClass::GetTypeNameStatic())
+    {
+        LOGINFO("MyClass preloaded");
+    }
+}
+
+void RCCppTest::HandleClassPostLoaded(StringHash eventType, VariantMap &eventData)
+{
+    using namespace RCCppClassPostLoaded;
+    String classLoaded = eventData[P_CLASS_NAME].GetString();
+
+    if (classLoaded == MyClass::GetTypeNameStatic())
+    {
+        LOGINFO("MyClass postloaded");
+    }
+}
+
+void RCCppTest::HandleLibraryPostLoaded(StringHash eventType, VariantMap &eventData)
+{
+    using namespace RCCppLibraryPostLoaded;
+    String libraryLoaded = eventData[P_LIBRARY].GetString();
+    LOGINFO("RCCppTest: Library loaded: " + libraryLoaded);
 }
 
 void RCCppTest::HandleKeyDown(StringHash eventType, VariantMap& eventData)
