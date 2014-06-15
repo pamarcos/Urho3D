@@ -61,14 +61,14 @@ RCCpp::RCCpp(Context* context) :
     context_->RegisterFactory<RCCppFile>();
     cache_->SetAutoReloadResources(true);
 
-    uiWindow_ = GetSubsystem<UI>()->GetRoot()->CreateChild<Window>();
-    uiWindow_->SetVisible(false);
-    uiWindow_->SetColor(Color::BLACK);
-    uiWindow_->SetPosition(0, 0);
-    uiWindow_->SetSize(200, 50);
-    uiWindow_->SetOpacity(0.5f);
-    uiText_ = uiWindow_->CreateChild<Text>();
-    uiText_->SetText("Compiling...");
+    uiBackground_ = GetSubsystem<UI>()->GetRoot()->CreateChild<Window>();
+    uiBackground_->SetVisible(false);
+    uiBackground_->SetColor(Color::BLACK);
+    uiBackground_->SetPosition(0, 0);
+    uiBackground_->SetOpacity(0.75f);
+    uiBackground_->SetPriority(200);
+    uiBackground_->SetLayout(LM_VERTICAL, 25, IntRect(15, 15, 15, 15));
+    uiText_ = uiBackground_->CreateChild<Text>();
     uiText_->SetFont(cache_->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
     uiText_->SetAlignment(HA_CENTER, VA_CENTER);
 }
@@ -149,7 +149,9 @@ bool RCCpp::CompileSync(const RCCppFile &file)
 
 void RCCpp::CompileAsync(const RCCppFile& file)
 {
-    uiWindow_->SetVisible(true);
+    uiText_->SetText("Compiling...");
+    uiBackground_->RemoveChild(uiCompilationText_);
+    uiBackground_->SetVisible(true);
     using namespace RCCppCompilationStarted;
     VariantMap& eventData = GetEventDataMap();
     eventData[P_FILE] = reinterpret_cast<void*>(const_cast<RCCppFile*>(&file));
@@ -297,7 +299,7 @@ void RCCpp::HandlePostUpdate(StringHash eventType, VariantMap &eventData)
 {
     if (compilationFinished_)
     {
-        uiWindow_->SetVisible(false);
+        uiBackground_->SetVisible(false);
         SendCompilationFinishedEvent(compilationSuccesful_, *rcCppFileCompiled_);
 
         if (compilationThread_.Get() != NULL)
@@ -317,6 +319,14 @@ void RCCpp::HandlePostUpdate(StringHash eventType, VariantMap &eventData)
             {
                 firstCompilation_ = false;
             }
+        }
+        else
+        {
+            uiText_->SetText("Compilation failed");
+            uiCompilationText_ = uiBackground_->CreateChild<Text>();
+            uiCompilationText_->SetText(compilationOutput_);
+            uiCompilationText_->SetFont(cache_->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 10);
+            uiBackground_->SetVisible(true);
         }
 
         compilationFinished_ = false;

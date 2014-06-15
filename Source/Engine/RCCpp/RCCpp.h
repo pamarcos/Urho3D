@@ -31,6 +31,7 @@
 #include "UIElement.h"
 #include "Text.h"
 #include "Window.h"
+#include "ListView.h"
 
 namespace Urho3D
 {
@@ -102,8 +103,9 @@ private:
     bool compilationFinished_;
     String compilationOutput_;
 
-    SharedPtr<Window> uiWindow_;
+    SharedPtr<BorderImage> uiBackground_;
     SharedPtr<Text> uiText_;
+    SharedPtr<Text> uiCompilationText_;
 };
 
 }
