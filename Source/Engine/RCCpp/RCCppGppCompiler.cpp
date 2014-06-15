@@ -41,7 +41,7 @@ const String RCCppGppCompiler::makefile_ =  ""
         "\n"
         "CXX := g++\n"
         "\n"
-#ifdef DEBUG
+#ifdef _DEBUG
         "CPP_DEBUG_FLAGS ?= -g\n"
 #else
         "CPP_DEBUG_FLAGS ?= -O2\n"
@@ -52,17 +52,17 @@ const String RCCppGppCompiler::makefile_ =  ""
         "CPPFLAGS := -m32\n"
 #endif
         "\n"
-        "CPPFLAGS := -fPIC $(CPP_DEBUG_FLAGS) $(CPPFLAGS) -DURHO3D_LOGGING $(EXT_DEFINES) $(EXT_CPPFLAGS) \\\n"
+        "CPPFLAGS := -fPIC $(CPP_DEBUG_FLAGS) $(CPPFLAGS) -DURHO3D_LOGGING -DURHO3D_RCCPP $(EXT_DEFINES) $(EXT_CPPFLAGS) \\\n"
         "-I$(URHO3D_HOME). \\\n"
         "-I$(URHO3D_HOME)/Build/Engine \\\n"
         "-I$(URHO3D_HOME)/Source/Engine/RCCpp \\\n"
         "-I$(URHO3D_HOME)/Source/Engine \\\n"
         "-I$(URHO3D_HOME)/Source/Engine/Audio \\\n"
         "-I$(URHO3D_HOME)/Source/Engine/Container \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Core  \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Engine  \\\n"
+        "-I$(URHO3D_HOME)/Source/Engine/Core \\\n"
+        "-I$(URHO3D_HOME)/Source/Engine/Engine \\\n"
         "-I$(URHO3D_HOME)/Source/Engine/Graphics \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Input  \\\n"
+        "-I$(URHO3D_HOME)/Source/Engine/Input \\\n"
         "-I$(URHO3D_HOME)/Source/Engine/IO \\\n"
         "-I$(URHO3D_HOME)/Source/Engine/Math \\\n"
         "-I$(URHO3D_HOME)/Source/Engine/Navigation \\\n"
@@ -162,8 +162,9 @@ bool RCCppGppCompiler::CreateMakefile(const String& fileName, const String& libr
     return true;
 }
 
-bool RCCppGppCompiler::Compile(const RCCppFile &file, const String& libraryPath)
+bool RCCppGppCompiler::Compile(const RCCppFile &file, const String& libraryPath, String& output)
 {
+    output.Clear();
     if (file.IsMainFile())
     {
         CreateMakefile(GetParentPath(libraryPath) +  "Makefile", GetFileNameAndExtension(libraryPath));
@@ -185,28 +186,27 @@ bool RCCppGppCompiler::Compile(const RCCppFile &file, const String& libraryPath)
         return false;
     }
     char buffer[128];
-    String result;
     while (!feof(pipe))
     {
         if (fgets(buffer, sizeof(buffer), pipe) != NULL)
         {
-            result.Append(buffer);
+            output.Append(buffer);
         }
     }
     pclose(pipe);
     File makefileOut(context_);
     if (makefileOut.Open(buildLog, FILE_WRITE))
     {
-        makefileOut.WriteString(result);
+        makefileOut.WriteString(output);
     }
     makefileOut.Flush();
     makefileOut.Close();
 
     fileSystem_->SetCurrentDir(origDir);
 
-    LOGDEBUG(result);
+    LOGDEBUG(output);
 
-    if (result.Contains("error", false))
+    if (output.Contains("error", false))
     {
         return false;
     }

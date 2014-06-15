@@ -37,6 +37,7 @@ EVENT(E_RCCPP_COMPILATION_FINISHED, RCCppCompilationFinished)
 {
     PARAM(P_SUCCESSFUL, CompilationSuccessful);
     PARAM(P_FILE, CompiledFile);
+    PARAM(P_OUTPUT, CompilationOutput);
 }
 
 EVENT(E_RCCPP_LIBRARY_PRELOADED, RCCppLibraryPreloaded)

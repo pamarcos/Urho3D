@@ -49,9 +49,9 @@ RCCppUnix::~RCCppUnix()
     UnloadLib();
 }
 
-bool RCCppUnix::Compile(const RCCppFile& file, const String& libraryPath)
+bool RCCppUnix::Compile(const RCCppFile& file, const String& libraryPath, String& output)
 {
-    return compiler_->Compile(file, libraryPath);
+    return compiler_->Compile(file, libraryPath, output);
 }
 
 RCCppObject* RCCppUnix::CreateObject(const String &objectName)

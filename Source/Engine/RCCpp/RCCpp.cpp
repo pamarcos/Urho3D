@@ -131,7 +131,7 @@ bool RCCpp::CompileSync(const RCCppFile &file)
     eventData[P_FILE] = reinterpret_cast<void*>(const_cast<RCCppFile*>(&file));
     SendEvent(E_RCCPP_COMPILATION_STARTED, eventData);
 
-    if (!impl_->Compile(file, libraryPath_))
+    if (!impl_->Compile(file, libraryPath_, compilationOutput_))
     {
         LOGERROR("Error compiling file " + file.GetName());
         compilationSuccesful_ = false;
@@ -278,6 +278,7 @@ void RCCpp::SendCompilationFinishedEvent(bool successful, const RCCppFile& file)
     VariantMap& eventData = GetEventDataMap();
     eventData[P_SUCCESSFUL] = successful;
     eventData[P_FILE] = reinterpret_cast<void*>(const_cast<RCCppFile*>(&file));
+    eventData[P_OUTPUT] = compilationOutput_;
     SendEvent(E_RCCPP_COMPILATION_FINISHED, eventData);
 }
 
@@ -366,16 +367,6 @@ void RCCpp::HandleClassPostLoaded(StringHash eventType, VariantMap &eventData)
     LOGDEBUG("RCCpp: Class postloaded: " + className);
 }
 
-String RCCpp::GetLibraryName()
-{
-    return libraryName_;
-}
-
-String RCCpp::GetLibraryPath()
-{
-    return libraryPath_;
-}
-
 CompilationThread::CompilationThread(Context* context, RCCpp* rcCpp, RCCppFile* file) :
     Object(context),
     rcCpp_(rcCpp),
@@ -390,7 +381,7 @@ CompilationThread::~CompilationThread()
 void CompilationThread::ThreadFunction()
 {
     rcCpp_->rcCppFileCompiled_ = rcCppFile_;
-    rcCpp_->compilationSuccesful_ = rcCpp_->impl_->Compile(*rcCppFile_, rcCpp_->libraryPath_);
+    rcCpp_->compilationSuccesful_ = rcCpp_->impl_->Compile(*rcCppFile_, rcCpp_->libraryPath_, rcCpp_->compilationOutput_);
     if (!rcCpp_->compilationSuccesful_ )
     {
         LOGERROR("Error compiling file " + rcCppFile_->GetName());

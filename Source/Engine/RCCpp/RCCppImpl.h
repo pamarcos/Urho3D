@@ -42,13 +42,14 @@ public:
     virtual ~RCCppImpl();
 
     /// Execute script file. Return true if successful.
-    virtual bool Compile(const RCCppFile& file, const String& libraryPath) = 0;
-    virtual void Start(const String& libraryName);
-    virtual void Stop();
+    virtual bool Compile(const RCCppFile& file, const String& libraryPath, String& output) = 0;
     virtual bool LoadLib(const String& libraryPath) = 0;
     virtual void UnloadLib() = 0;
     virtual RCCppObject* CreateObject(const String& objectName) = 0;
     virtual void DestroyObject(RCCppObject* object) = 0;
+
+    virtual void Start(const String& libraryName);
+    virtual void Stop();
 
 protected:
     RCCppMainObject* mainObject_;

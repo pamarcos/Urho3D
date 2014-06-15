@@ -70,8 +70,8 @@ public:
     void Stop();
     bool LoadLibrary(const String& libraryPath);
 
-    String GetLibraryName();
-    String GetLibraryPath();
+    String GetLibraryName() { return libraryName_; }
+    String GetLibraryPath() { return libraryPath_; }
 
 private:
     bool ReloadLibrary(const String& libraryPath);
@@ -100,6 +100,7 @@ private:
     SharedPtr<CompilationThread> compilationThread_;
     bool firstCompilation_;
     bool compilationFinished_;
+    String compilationOutput_;
 
     SharedPtr<Window> uiWindow_;
     SharedPtr<Text> uiText_;

@@ -37,7 +37,7 @@ class URHO3D_API RCCppCompiler : public Object
 public:
     RCCppCompiler(Context* context) : Object(context) {}
 
-    virtual bool Compile(const RCCppFile& file, const String& libraryPath) = 0;
+    virtual bool Compile(const RCCppFile& file, const String& libraryPath, String& output) = 0;
 };
 
 }

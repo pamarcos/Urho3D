@@ -41,7 +41,7 @@ public:
     RCCppGppCompiler(Context* context);
 
     bool CreateMakefile(const String& fileName, const String& libraryName);
-    bool Compile(const RCCppFile& file, const String& libraryPath);
+    bool Compile(const RCCppFile& file, const String& libraryPath, String& output);
 
 private:
     String makeCommand_;
