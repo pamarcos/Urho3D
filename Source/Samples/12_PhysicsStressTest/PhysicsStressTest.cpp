@@ -48,7 +48,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(PhysicsStressTest)
+DEFINE_APPLICATION(PhysicsStressTest)
 
 PhysicsStressTest::PhysicsStressTest(Context* context) :
     Sample(context),

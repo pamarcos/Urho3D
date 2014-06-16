@@ -41,7 +41,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(MaterialAnimation)
+DEFINE_APPLICATION(MaterialAnimation)
 
 MaterialAnimation::MaterialAnimation(Context* context) :
     Sample(context)

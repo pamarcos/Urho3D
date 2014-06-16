@@ -41,7 +41,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(HelloGUI)
+DEFINE_APPLICATION(HelloGUI)
 
 HelloGUI::HelloGUI(Context* context) :
     Sample(context),

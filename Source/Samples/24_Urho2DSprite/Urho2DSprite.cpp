@@ -45,7 +45,7 @@ static const unsigned NUM_SPRITES = 200;
 static const ShortStringHash VAR_MOVESPEED("MoveSpeed");
 static const ShortStringHash VAR_ROTATESPEED("RotateSpeed");
 
-DEFINE_APPLICATION_MAIN(Urho2DSprite)
+DEFINE_APPLICATION(Urho2DSprite)
 
 Urho2DSprite::Urho2DSprite(Context* context) :
     Sample(context)

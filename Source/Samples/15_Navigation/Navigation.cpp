@@ -48,7 +48,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(Navigation)
+DEFINE_APPLICATION(Navigation)
 
 Navigation::Navigation(Context* context) :
     Sample(context),

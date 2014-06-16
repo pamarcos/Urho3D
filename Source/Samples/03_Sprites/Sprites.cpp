@@ -38,7 +38,7 @@ static const unsigned NUM_SPRITES = 100;
 // Custom variable identifier for storing sprite velocity within the UI element
 static const ShortStringHash VAR_VELOCITY("Velocity");
 
-DEFINE_APPLICATION_MAIN(Sprites)
+DEFINE_APPLICATION(Sprites)
 
 Sprites::Sprites(Context* context) :
     Sample(context)

@@ -60,7 +60,7 @@
 #include "Vector.h"
 #include "Zone.h"
 
-DEFINE_APPLICATION_MAIN(Urho2DConstraints)
+DEFINE_APPLICATION(Urho2DConstraints)
 
 Node* pickedNode;
 RigidBody2D* dummyBody;

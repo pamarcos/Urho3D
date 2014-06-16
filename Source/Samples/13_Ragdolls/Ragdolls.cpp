@@ -49,7 +49,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(Ragdolls)
+DEFINE_APPLICATION(Ragdolls)
 
 Ragdolls::Ragdolls(Context* context) :
     Sample(context),

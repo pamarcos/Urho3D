@@ -40,7 +40,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(StaticScene)
+DEFINE_APPLICATION(StaticScene)
 
 StaticScene::StaticScene(Context* context) :
     Sample(context)

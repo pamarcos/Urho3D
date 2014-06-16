@@ -33,7 +33,7 @@
 #include "DebugNew.h"
 
 // Expands to this example's entry-point
-DEFINE_APPLICATION_MAIN(HelloWorld)
+DEFINE_APPLICATION(HelloWorld)
 
 HelloWorld::HelloWorld(Context* context) :
     Sample(context)

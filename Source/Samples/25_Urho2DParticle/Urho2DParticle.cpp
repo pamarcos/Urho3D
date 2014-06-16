@@ -39,7 +39,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(Urho2DParticle)
+DEFINE_APPLICATION(Urho2DParticle)
 
 Urho2DParticle::Urho2DParticle(Context* context) :
     Sample(context)

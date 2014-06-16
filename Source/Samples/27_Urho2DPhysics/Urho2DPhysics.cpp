@@ -44,7 +44,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(Urho2DPhysics)
+DEFINE_APPLICATION(Urho2DPhysics)
 
 static const unsigned NUM_OBJECTS = 100;
 

@@ -51,7 +51,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(CharacterDemo)
+DEFINE_APPLICATION(CharacterDemo)
 
 CharacterDemo::CharacterDemo(Context* context) :
     Sample(context),

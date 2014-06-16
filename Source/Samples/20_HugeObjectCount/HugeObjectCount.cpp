@@ -42,7 +42,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(HugeObjectCount)
+DEFINE_APPLICATION(HugeObjectCount)
 
 HugeObjectCount::HugeObjectCount(Context* context) :
     Sample(context),

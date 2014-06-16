@@ -55,7 +55,7 @@ static String soundResourceNames[] = {
     "Sounds/Powerup.wav"
 };
 
-DEFINE_APPLICATION_MAIN(SoundEffects)
+DEFINE_APPLICATION(SoundEffects)
 
 SoundEffects::SoundEffects(Context* context) :
     Sample(context)

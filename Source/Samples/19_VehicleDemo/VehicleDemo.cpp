@@ -51,7 +51,7 @@
 
 const float CAMERA_DISTANCE = 10.0f;
 
-DEFINE_APPLICATION_MAIN(VehicleDemo)
+DEFINE_APPLICATION(VehicleDemo)
 
 VehicleDemo::VehicleDemo(Context* context) :
     Sample(context)

@@ -45,7 +45,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(RenderToTexture)
+DEFINE_APPLICATION(RenderToTexture)
 
 RenderToTexture::RenderToTexture(Context* context) :
     Sample(context)

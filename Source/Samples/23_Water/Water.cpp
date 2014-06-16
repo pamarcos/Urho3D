@@ -48,7 +48,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(Water)
+DEFINE_APPLICATION(Water)
 
 Water::Water(Context* context) :
     Sample(context)

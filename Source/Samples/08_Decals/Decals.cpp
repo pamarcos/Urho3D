@@ -46,7 +46,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(Decals)
+DEFINE_APPLICATION(Decals)
 
 Decals::Decals(Context* context) :
     Sample(context),

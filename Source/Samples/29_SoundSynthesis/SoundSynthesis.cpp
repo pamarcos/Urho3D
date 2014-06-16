@@ -36,7 +36,7 @@
 #include "DebugNew.h"
 
 // Expands to this example's entry-point
-DEFINE_APPLICATION_MAIN(SoundSynthesis)
+DEFINE_APPLICATION(SoundSynthesis)
 
 SoundSynthesis::SoundSynthesis(Context* context) :
     Sample(context),

@@ -42,7 +42,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(Urho2DPhysicsRope)
+DEFINE_APPLICATION(Urho2DPhysicsRope)
 
 static const unsigned NUM_OBJECTS = 10;
 

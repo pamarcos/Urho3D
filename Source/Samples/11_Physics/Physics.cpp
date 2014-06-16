@@ -49,7 +49,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(Physics)
+DEFINE_APPLICATION(Physics)
 
 Physics::Physics(Context* context) :
     Sample(context),

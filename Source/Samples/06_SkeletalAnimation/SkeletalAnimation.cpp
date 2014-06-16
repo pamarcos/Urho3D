@@ -46,7 +46,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(SkeletalAnimation)
+DEFINE_APPLICATION(SkeletalAnimation)
 
 SkeletalAnimation::SkeletalAnimation(Context* context) :
     Sample(context),

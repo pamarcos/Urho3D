@@ -22,7 +22,11 @@
 
 #pragma once
 
+#ifndef RCCPP
 #include "Sample.h"
+#else
+#include "../Sample.h"
+#endif
 
 /// This first example, maintaining tradition, prints a "Hello World" message.
 /// Furthermore it shows:

@@ -41,7 +41,7 @@
 #include "DebugNew.h"
 #include "Animatable.h"
 
-DEFINE_APPLICATION_MAIN(LightAnimation)
+DEFINE_APPLICATION(LightAnimation)
 
 LightAnimation::LightAnimation(Context* context) :
     Sample(context)

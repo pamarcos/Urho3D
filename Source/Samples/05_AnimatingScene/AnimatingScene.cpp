@@ -42,7 +42,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(AnimatingScene)
+DEFINE_APPLICATION(AnimatingScene)
 
 AnimatingScene::AnimatingScene(Context* context) :
     Sample(context)

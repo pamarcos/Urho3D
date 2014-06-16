@@ -36,7 +36,7 @@
 #include "DebugNew.h"
 
 // Expands to this example's entry-point
-DEFINE_APPLICATION_MAIN(ConsoleInput)
+DEFINE_APPLICATION(ConsoleInput)
 
 // Hunger level descriptions
 String hungerLevels[] = {

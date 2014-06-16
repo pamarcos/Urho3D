@@ -31,5 +31,8 @@ set (ENGINE_INCLUDE_DIRS_ONLY ${ENGINE_INCLUDE_DIRS_ONLY} PARENT_SCOPE)
 set (INCLUDE_DIRS_ONLY . .. ../Audio ../Container ../Core ../Engine ../Graphics ../Input ../IO ../Math ../Navigation ../Network ../Physics ../Resource ../Scene ../UI  ../Urho2D
     ../../ThirdParty/Box2D ../../ThirdParty/Bullet/src ../../ThirdParty/kNet/include ../../ThirdParty/SDL/include ${CMAKE_BINARY_DIR}/Engine)
 
+# Copy C++ samples into Data/RCCpp
+file(COPY ../../Samples/ DESTINATION ../../../Bin/Data/RCCpp/)
+
 # Setup target
 setup_library ()

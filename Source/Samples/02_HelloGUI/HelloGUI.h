@@ -22,7 +22,11 @@
 
 #pragma once
 
+#ifndef RCCPP
 #include "Sample.h"
+#else
+#include "../Sample.h"
+#endif
 
 namespace Urho3D
 {

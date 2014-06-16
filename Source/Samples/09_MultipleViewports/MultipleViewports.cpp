@@ -46,7 +46,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(MultipleViewports)
+DEFINE_APPLICATION(MultipleViewports)
 
 MultipleViewports::MultipleViewports(Context* context) :
     Sample(context),

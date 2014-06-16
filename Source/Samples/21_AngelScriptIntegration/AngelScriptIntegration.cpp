@@ -44,7 +44,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(AngelScriptIntegration)
+DEFINE_APPLICATION(AngelScriptIntegration)
 
 AngelScriptIntegration::AngelScriptIntegration(Context* context) :
     Sample(context)

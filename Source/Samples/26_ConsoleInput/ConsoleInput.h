@@ -22,7 +22,11 @@
 
 #pragma once
 
+#ifndef RCCPP
 #include "Sample.h"
+#else
+#include "../Sample.h"
+#endif
 
 /// Console input example.
 /// This sample demonstrates:

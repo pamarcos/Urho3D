@@ -22,7 +22,11 @@
 
 #pragma once
 
+#ifndef RCCPP
 #include "Sample.h"
+#else
+#include "../Sample.h"
+#endif
 
 /// Moving sprites example.
 /// This sample demonstrates:

@@ -22,7 +22,11 @@
 
 #pragma once
 
+#ifndef RCCPP
 #include "Application.h"
+#else
+#include "RCCppMainObject.h"
+#endif
 
 namespace Urho3D
 {
@@ -30,6 +34,7 @@ namespace Urho3D
 class Node;
 class Scene;
 class Sprite;
+class Engine;
 
 }
 
@@ -48,7 +53,11 @@ const float TOUCH_SENSITIVITY = 2.0f;
 ///    - Take screenshot with key 9
 ///    - Handle Esc key down to hide Console or exit application
 ///    - Init touch input on mobile platform using screen joysticks (patched for each individual sample)
+#ifndef RCCPP
 class Sample : public Application
+#else
+class Sample : public RCCppMainObject
+#endif
 {
     // Enable type information.
     OBJECT(Sample);
@@ -61,6 +70,9 @@ public:
     virtual void Setup();
     /// Setup after engine initialization. Creates the logo, console & debug HUD.
     virtual void Start();
+#ifdef RCCPP
+    virtual void Stop() {}
+#endif
 
 protected:
     /// Return XML patch instructions for screen joystick layout for a specific sample app, if any.
@@ -82,6 +94,9 @@ protected:
     float pitch_;
     /// Flag to indicate whether touch input has been enabled.
     bool touchEnabled_;
+#ifdef RCCPP
+    Engine* engine_;
+#endif
 
 private:
     /// Create logo.
@@ -106,3 +121,9 @@ private:
 };
 
 #include "Sample.inl"
+
+#ifndef RCCPP
+#define DEFINE_APPLICATION(className) DEFINE_APPLICATION_MAIN(className);
+#else
+#define DEFINE_APPLICATION(className) RCCPP_OBJECT(className);
+#endif

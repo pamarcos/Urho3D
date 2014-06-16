@@ -44,7 +44,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(Billboards)
+DEFINE_APPLICATION(Billboards)
 
 Billboards::Billboards(Context* context) :
     Sample(context),
