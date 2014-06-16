@@ -186,7 +186,7 @@ void RCCpp::Stop()
 {
     try
     {
-        if (!compilationSuccesful_)
+        if (compilationSuccesful_)
         {
             impl_->Stop();
         }

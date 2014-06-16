@@ -56,7 +56,6 @@ RCCppWin::RCCppWin(Context* context) :
 
 RCCppWin::~RCCppWin()
 {
-    UnloadLib();
 }
 
 bool RCCppWin::Compile(const RCCppFile& file, const String& libraryPath)
