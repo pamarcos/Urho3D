@@ -45,7 +45,7 @@
 
 #include "DebugNew.h"
 
-DEFINE_APPLICATION_MAIN(LuaIntegration)
+DEFINE_APPLICATION(LuaIntegration)
 
 LuaIntegration::LuaIntegration(Context* context) :
     Sample(context)

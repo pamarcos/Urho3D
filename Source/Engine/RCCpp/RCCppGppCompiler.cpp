@@ -71,6 +71,12 @@ const String RCCppGppCompiler::makefile_ =  ""
         "-I$(URHO3D_HOME)/Source/Engine/Physics \\\n"
         "-I$(URHO3D_HOME)/Source/Engine/Resource \\\n"
         "-I$(URHO3D_HOME)/Source/Engine/Scene \\\n"
+#ifdef URHO3D_ANGELSCRIPT
+        "-I$(URHO3D_HOME)/Source/Engine/Script \\\n"
+#endif
+#ifdef URHO3D_LUA
+        "-I$(URHO3D_HOME)/Source/Engine/LuaScript \\\n"
+#endif
         "-I$(URHO3D_HOME)/Source/Engine/UI \\\n"
         "-I$(URHO3D_HOME)/Source/Engine/Urho2D \\\n"
         "-I$(URHO3D_HOME)/Source/ThirdParty/Box2D \\\n"
