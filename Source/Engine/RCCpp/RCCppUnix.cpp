@@ -46,6 +46,7 @@ RCCppUnix::RCCppUnix(Context* context) :
 
 RCCppUnix::~RCCppUnix()
 {
+    UnloadLib();
 }
 
 bool RCCppUnix::Compile(const RCCppFile& file, const String& libraryPath, String& output)

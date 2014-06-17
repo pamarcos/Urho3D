@@ -69,8 +69,8 @@ Context::~Context()
     RemoveSubsystem("Renderer");
     RemoveSubsystem("Graphics");
     
-    subsystems_.Clear();
     factories_.Clear();
+    subsystems_.Clear();
     
     // Delete allocated event data maps
     for (PODVector<VariantMap*>::Iterator i = eventDataMaps_.Begin(); i != eventDataMaps_.End(); ++i)
