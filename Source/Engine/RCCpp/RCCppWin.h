@@ -47,7 +47,7 @@ public:
     RCCppWin(Context* context);
     ~RCCppWin();
 
-    bool Compile(const RCCppFile& file, const String& libraryPath);
+    bool Compile(const RCCppFile& file, const String& libraryPath, String& output);
     bool LoadLib(const String& libraryPath);
     void UnloadLib();
 

@@ -177,7 +177,7 @@ void Urho3DPlayer::Start()
         }
         else
         {
-            if (rcCpp->LoadLibrary(scriptFileName_))
+            if (rcCpp->LoadLib(scriptFileName_))
             {
                 rcCpp->Start();
                 return;

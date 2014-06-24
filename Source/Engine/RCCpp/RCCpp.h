@@ -68,7 +68,7 @@ public:
 
     void Start();
     void Stop();
-    bool LoadLibrary(const String& libraryPath);
+    bool LoadLib(const String& libraryPath);
 
     String GetLibraryName() { return libraryName_; }
     String GetLibraryPath() { return libraryPath_; }
@@ -77,7 +77,7 @@ public:
     void SetMincCppFileChangeTimeElapsed(unsigned value) { minRcCppFileChangeTimeElapsed_ = value; }
 
 private:
-    bool ReloadLibrary(const String& libraryPath);
+    bool ReloadLib(const String& libraryPath);
     void SendCompilationFinishedEvent(bool successful, const RCCppFile& file);
     void SubscribeToEvents();
 
