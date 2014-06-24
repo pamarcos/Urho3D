@@ -30,8 +30,7 @@
 #include "Thread.h"
 #include "UIElement.h"
 #include "Text.h"
-#include "Window.h"
-#include "ListView.h"
+#include "BorderImage.h"
 
 namespace Urho3D
 {
@@ -74,6 +73,9 @@ public:
     String GetLibraryName() { return libraryName_; }
     String GetLibraryPath() { return libraryPath_; }
 
+    unsigned GetMinRcCppFileChangeTimeElapsed() { return minRcCppFileChangeTimeElapsed_; }
+    void SetMincCppFileChangeTimeElapsed(unsigned value) { minRcCppFileChangeTimeElapsed_ = value; }
+
 private:
     bool ReloadLibrary(const String& libraryPath);
     void SendCompilationFinishedEvent(bool successful, const RCCppFile& file);
@@ -102,6 +104,8 @@ private:
     bool firstCompilation_;
     bool compilationFinished_;
     String compilationOutput_;
+    unsigned rcCppFileChangedTimestamp_;
+    unsigned minRcCppFileChangeTimeElapsed_;
 
     SharedPtr<BorderImage> uiBackground_;
     SharedPtr<Text> uiText_;

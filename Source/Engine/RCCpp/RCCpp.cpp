@@ -50,7 +50,9 @@ RCCpp::RCCpp(Context* context) :
     compilationSuccesful_(false),
     firstCompilation_(true),
     compilationFinished_(false),
-    cache_(GetSubsystem<ResourceCache>())
+    cache_(GetSubsystem<ResourceCache>()),
+    rcCppFileChangedTimestamp_(0),
+    minRcCppFileChangeTimeElapsed_(2000)
 {
 #if defined(__APPLE__) || defined(__linux__)
     impl_ = new RCCppUnix(context);
@@ -61,7 +63,7 @@ RCCpp::RCCpp(Context* context) :
     context_->RegisterFactory<RCCppFile>();
     cache_->SetAutoReloadResources(true);
 
-    uiBackground_ = GetSubsystem<UI>()->GetRoot()->CreateChild<Window>();
+    uiBackground_ = GetSubsystem<UI>()->GetRoot()->CreateChild<BorderImage>();
     uiBackground_->SetVisible(false);
     uiBackground_->SetColor(Color::BLACK);
     uiBackground_->SetPosition(0, 0);
@@ -290,8 +292,18 @@ void RCCpp::HandleRCCppFileChanged(StringHash eventType, VariantMap& eventData)
     String fileName = eventData[P_FILENAME].GetString();
     if (GetExtension(fileName) == ".cpp" || GetExtension(fileName) == ".h")
     {
-        LOGDEBUG("RCCpp: reloading cpp file: " + fileName);
-        CompileAsync(*cache_->GetResource<RCCppFile>(fileName));
+        unsigned timestmap = Time::GetSystemTime();
+        if (timestmap - rcCppFileChangedTimestamp_ > minRcCppFileChangeTimeElapsed_)
+        {
+            rcCppFileChangedTimestamp_ = timestmap;
+            LOGDEBUG("RCCpp: reloading cpp file: " + fileName);
+            CompileAsync(*cache_->GetResource<RCCppFile>(fileName));
+        }
+        else
+        {
+            LOGDEBUG("RCCpp: cpp file " + fileName + " changed too fast (< " + String(minRcCppFileChangeTimeElapsed_) + " ms). Time elapsed: " +
+                     String(timestmap-rcCppFileChangedTimestamp_) + " ms");
+        }
     }
 }
 
