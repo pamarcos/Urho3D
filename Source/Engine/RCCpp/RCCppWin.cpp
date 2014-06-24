@@ -59,7 +59,7 @@ RCCppWin::~RCCppWin()
     UnloadLib();
 }
 
-bool RCCppWin::Compile(const RCCppFile& file, const String& libraryPath)
+bool RCCppWin::Compile(const RCCppFile& file, const String& libraryPath, String& output)
 {
     // Windows throws a file access error when trying to compile a loaded library.
     // It allows to change its name, though. So, we change its name, compile and then remove
@@ -70,7 +70,7 @@ bool RCCppWin::Compile(const RCCppFile& file, const String& libraryPath)
         fileSystem_->Rename(libraryPath, oldLibPath_);
     }
     firstCompilation_ = false;
-    return compiler_->Compile(file, libraryPath);
+    return compiler_->Compile(file, libraryPath, output);
 }
 
 RCCppObject* RCCppWin::CreateObject(const String &objectName)

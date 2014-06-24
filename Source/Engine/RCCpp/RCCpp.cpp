@@ -103,7 +103,7 @@ bool RCCpp::ExecuteFile(const String &fileName)
     compilationSuccesful_ = CompileSync(*mainRCCppFile_);
     if (compilationSuccesful_)
     {
-        return ReloadLibrary(libraryPath_);
+        return ReloadLib(libraryPath_);
     }
     else
     {
@@ -197,7 +197,7 @@ void RCCpp::Stop()
     }
 }
 
-bool RCCpp::LoadLibrary(const String &libraryPath)
+bool RCCpp::LoadLib(const String &libraryPath)
 {
     compilationSuccesful_ = true;
     libraryPath_ = libraryPath;
@@ -226,7 +226,7 @@ bool RCCpp::LoadLibrary(const String &libraryPath)
     }
 }
 
-bool RCCpp::ReloadLibrary(const String& libraryPath)
+bool RCCpp::ReloadLib(const String& libraryPath)
 {
     if (!compilationSuccesful_)
     {
@@ -312,7 +312,7 @@ void RCCpp::HandlePostUpdate(StringHash eventType, VariantMap &eventData)
             if (!firstCompilation_)
             {
                 impl_->Stop();
-                ReloadLibrary(libraryPath_);
+                ReloadLib(libraryPath_);
                 impl_->Start(libraryName_);
             }
             else
