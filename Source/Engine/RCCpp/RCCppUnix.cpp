@@ -1,4 +1,4 @@
-//
+﻿//
 // Copyright (c) 2008-2014 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -40,7 +40,8 @@ RCCppUnix::RCCppUnix(Context* context) :
     library_(NULL),
     createObject_(NULL),
     destroyObject_(NULL),
-    compiler_(new RCCppGppCompiler(context_))
+    compiler_(new RCCppGppCompiler(context_)),
+    fileSystem_(context_->GetSubsystem<FileSystem>())
 {
 }
 
@@ -84,7 +85,23 @@ void RCCppUnix::DestroyObject(RCCppObject *object)
 
 bool RCCppUnix::LoadLib(const String& libraryPath)
 {
+    if (library_ != NULL)
+    {
+        UnloadLib();
+    }
+#ifdef __linux__
+    // Hack in case it's Linux. It seems dlopen caches the library name and in case
+    // the same library name is opened again (even after closing the library), it returns
+    // the same handler (memory address). Hence, every time we need to load the library we
+    // use a different name to avoid that happening.
+    static unsigned counter = 0;
+    String tmpLibraryPath = libraryPath + "." + String(counter++);
+    fileSystem_->Rename(libraryPath, tmpLibraryPath);
+    library_ = dlopen(tmpLibraryPath.CString(), RTLD_LAZY);
+    fileSystem_->Rename(tmpLibraryPath, libraryPath);
+#else
     library_ = dlopen(libraryPath.CString(), RTLD_LAZY);
+#endif
     if (library_ != NULL)
     {
         String name = GetFileName(libraryPath);
@@ -94,6 +111,7 @@ bool RCCppUnix::LoadLib(const String& libraryPath)
     }
     else
     {
+        LOGERROR("Error loading library " + libraryPath + ": " + dlerror());
         return false;
     }
 }
@@ -102,9 +120,14 @@ void RCCppUnix::UnloadLib()
 {
     if (library_ != NULL)
     {
-        dlclose(library_);
+        if (dlclose(library_) != 0)
+        {
+            LOGERROR("Error closing library: " + String(dlerror()));
+        }
         library_ = NULL;
         mainObject_ = NULL;
+        createObject_ = NULL;
+        destroyObject_ = NULL;
     }
 }
 

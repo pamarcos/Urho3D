@@ -36,6 +36,7 @@ namespace Urho3D
 class RCCppMainObject;
 class RCCppObject;
 class RCCppCompiler;
+class FileSystem;
 
 class URHO3D_API RCCppUnix : public RCCppImpl
 {
@@ -57,6 +58,7 @@ private:
     void* library_;
     PCreateRCCppObject createObject_;
     PDestroyRCCppObject destroyObject_;
+    FileSystem* fileSystem_;
 };
 
 }

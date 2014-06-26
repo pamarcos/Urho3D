@@ -103,6 +103,10 @@ void RCCppWin::DestroyObject(RCCppObject *object)
 
 bool RCCppWin::LoadLib(const String& libraryPath)
 {
+    if (library_ != NULL)
+    {
+        UnloadLib();
+    }
     library_ = LoadLibrary(libraryPath.CString());
     if (library_ != NULL)
     {
@@ -124,6 +128,8 @@ void RCCppWin::UnloadLib()
         FreeLibrary(library_);
         library_ = NULL;
         mainObject_ = NULL;
+        createObject_ = NULL;
+        destroyObject_ = NULL;
 
         if (!oldLibPath_.Empty())
         {
