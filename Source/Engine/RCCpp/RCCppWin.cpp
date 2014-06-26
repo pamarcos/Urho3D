@@ -109,15 +109,11 @@ bool RCCppWin::LoadLib(const String& libraryPath)
         String name = GetFileName(libraryPath);
         createObject_ = (PCreateRCCppObject)GetProcAddress(library_, String("create" + name).CString());
         destroyObject_ = (PDestroyRCCppObject)GetProcAddress(library_, String("destroy" + name).CString());
-    }
-
-    if (library_ == NULL)
-    {
-        return false;
+        return true;
     }
     else
     {
-        return true;
+        return false;
     }
 }
 
