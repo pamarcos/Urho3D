@@ -30,7 +30,7 @@
 #include "RCCppGppCompiler.h"
 
 #include <stdio.h>
-#include "dlfcn.h"
+#include <dlfcn.h>
 
 namespace Urho3D
 {
@@ -89,16 +89,25 @@ bool RCCppUnix::LoadLib(const String& libraryPath)
     {
         UnloadLib();
     }
+
 #ifdef __linux__
     // Hack in case it's Linux. It seems dlopen caches the library name and in case
     // the same library name is opened again (even after closing the library), it returns
     // the same handler (memory address). Hence, every time we need to load the library we
     // use a different name to avoid that happening.
-    static unsigned counter = 0;
-    String tmpLibraryPath = libraryPath + "." + String(counter++);
-    fileSystem_->Rename(libraryPath, tmpLibraryPath);
-    library_ = dlopen(tmpLibraryPath.CString(), RTLD_LAZY);
-    fileSystem_->Rename(tmpLibraryPath, libraryPath);
+    static bool firstLoad = true;
+    if (firstLoad)
+    {
+        String tmpLibraryPath = libraryPath + ".first";
+        fileSystem_->Rename(libraryPath, tmpLibraryPath);
+        library_ = dlopen(tmpLibraryPath.CString(), RTLD_LAZY);
+        fileSystem_->Rename(tmpLibraryPath, libraryPath);
+        firstLoad = false;
+    }
+    else
+    {
+        library_ = dlopen(libraryPath.CString(), RTLD_LAZY);
+    }
 #else
     library_ = dlopen(libraryPath.CString(), RTLD_LAZY);
 #endif

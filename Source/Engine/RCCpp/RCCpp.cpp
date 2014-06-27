@@ -105,7 +105,7 @@ bool RCCpp::ExecuteFile(const String &fileName)
     compilationSuccesful_ = CompileSync(*mainRCCppFile_);
     if (compilationSuccesful_)
     {
-        return ReloadLib(libraryPath_);
+        return LoadLib(libraryPath_);
     }
     else
     {
@@ -210,6 +210,7 @@ bool RCCpp::LoadLib(const String &libraryPath)
         SendEvent(E_RCCPP_LIBRARY_PRELOADED, libPreEventData);
     }
 
+    LOGDEBUG("Loading library " + libraryPath);
     if (impl_->LoadLib(libraryPath_))
     {
         {
@@ -250,7 +251,10 @@ bool RCCpp::ReloadLib(const String& libraryPath)
         SendEvent(E_RCCPP_CLASS_PRELOADED, classPreEventData);
     }
 
+    LOGDEBUG("Unloading library ");
     impl_->UnloadLib();
+
+    LOGDEBUG("Loading library " + libraryPath);
     if (impl_->LoadLib(libraryPath))
     {
         {
