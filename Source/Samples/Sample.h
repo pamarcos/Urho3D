@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2014 the Urho3D project.
+// Copyright (c) 2008-2015 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 #pragma once
 
 #ifndef RCCPP
-#include "Application.h"
+#include <Urho3D/Engine/Application.h>
 #else
 #include "RCCppMainObject.h"
 #endif
@@ -34,7 +34,6 @@ namespace Urho3D
 class Node;
 class Scene;
 class Sprite;
-class Engine;
 
 }
 
@@ -70,9 +69,8 @@ public:
     virtual void Setup();
     /// Setup after engine initialization. Creates the logo, console & debug HUD.
     virtual void Start();
-#ifdef RCCPP
-    virtual void Stop() {}
-#endif
+    /// Cleanup after the main loop. Called by Application.
+    virtual void Stop();
 
 protected:
     /// Return XML patch instructions for screen joystick layout for a specific sample app, if any.

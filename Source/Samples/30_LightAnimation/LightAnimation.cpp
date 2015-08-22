@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2014 the Urho3D project.
+// Copyright (c) 2008-2015 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,26 +20,30 @@
 // THE SOFTWARE.
 //
 
-#include "Camera.h"
-#include "CoreEvents.h"
-#include "Engine.h"
-#include "Font.h"
-#include "Graphics.h"
-#include "Input.h"
-#include "LightAnimation.h"
-#include "Material.h"
-#include "Model.h"
-#include "Octree.h"
-#include "Renderer.h"
-#include "ResourceCache.h"
-#include "Scene.h"
-#include "StaticModel.h"
-#include "Text.h"
-#include "UI.h"
-#include "ValueAnimation.h"
+#include <Urho3D/Urho3D.h>
 
-#include "DebugNew.h"
-#include "Animatable.h"
+#include <Urho3D/Scene/Animatable.h>
+#include <Urho3D/Graphics/Camera.h>
+#include <Urho3D/Core/CoreEvents.h>
+#include <Urho3D/Engine/Engine.h>
+#include <Urho3D/UI/Font.h>
+#include <Urho3D/Graphics/Graphics.h>
+#include <Urho3D/Input/Input.h>
+#include <Urho3D/Graphics/Material.h>
+#include <Urho3D/Graphics/Model.h>
+#include <Urho3D/Graphics/Octree.h>
+#include <Urho3D/Scene/ObjectAnimation.h>
+#include <Urho3D/Graphics/Renderer.h>
+#include <Urho3D/Resource/ResourceCache.h>
+#include <Urho3D/Scene/Scene.h>
+#include <Urho3D/Graphics/StaticModel.h>
+#include <Urho3D/UI/Text.h>
+#include <Urho3D/UI/UI.h>
+#include <Urho3D/Scene/ValueAnimation.h>
+
+#include "LightAnimation.h"
+
+#include <Urho3D/DebugNew.h>
 
 DEFINE_APPLICATION(LightAnimation)
 
@@ -53,11 +57,11 @@ void LightAnimation::Start()
     // Execute base class startup
     Sample::Start();
 
-    // Create the scene content
-    CreateScene();
-    
     // Create the UI content
     CreateInstructions();
+
+    // Create the scene content
+    CreateScene();
     
     // Setup the viewport for displaying the scene
     SetupViewport();
@@ -93,15 +97,9 @@ void LightAnimation::CreateScene()
     light->SetLightType(LIGHT_POINT);
     light->SetRange(10.0f);
 
-    // Create light color animation
-    SharedPtr<ValueAnimation> colorAnimation(new ValueAnimation(context_));
-    colorAnimation->SetKeyFrame(0.0f, Color::WHITE);
-    colorAnimation->SetKeyFrame(1.0f, Color::RED);
-    colorAnimation->SetKeyFrame(2.0f, Color::YELLOW);
-    colorAnimation->SetKeyFrame(3.0f, Color::GREEN);
-    colorAnimation->SetKeyFrame(4.0f, Color::WHITE);
-    light->SetAttributeAnimation("Color", colorAnimation);
-
+    // Create light animation
+    SharedPtr<ObjectAnimation> lightAnimation(new ObjectAnimation(context_));
+    
     // Create light position animation
     SharedPtr<ValueAnimation> positionAnimation(new ValueAnimation(context_));
     // Use spline interpolation method
@@ -113,7 +111,30 @@ void LightAnimation::CreateScene()
     positionAnimation->SetKeyFrame(2.0f, Vector3( 30.0f, 5.0f,  30.0f));
     positionAnimation->SetKeyFrame(3.0f, Vector3(-30.0f, 5.0f,  30.0f));
     positionAnimation->SetKeyFrame(4.0f, Vector3(-30.0f, 5.0f, -30.0f));
-    lightNode->SetAttributeAnimation("Position", positionAnimation);
+    // Set position animation
+    lightAnimation->AddAttributeAnimation("Position", positionAnimation);
+
+    // Create text animation
+    SharedPtr<ValueAnimation> textAnimation(new ValueAnimation(context_));
+    textAnimation->SetKeyFrame(0.0f, "WHITE");
+    textAnimation->SetKeyFrame(1.0f, "RED");
+    textAnimation->SetKeyFrame(2.0f, "YELLOW");
+    textAnimation->SetKeyFrame(3.0f, "GREEN");
+    textAnimation->SetKeyFrame(4.0f, "WHITE");
+    GetSubsystem<UI>()->GetRoot()->GetChild(String("animatingText"))->SetAttributeAnimation("Text", textAnimation);
+
+    // Create light color animation
+    SharedPtr<ValueAnimation> colorAnimation(new ValueAnimation(context_));
+    colorAnimation->SetKeyFrame(0.0f, Color::WHITE);
+    colorAnimation->SetKeyFrame(1.0f, Color::RED);
+    colorAnimation->SetKeyFrame(2.0f, Color::YELLOW);
+    colorAnimation->SetKeyFrame(3.0f, Color::GREEN);
+    colorAnimation->SetKeyFrame(4.0f, Color::WHITE);
+    // Set Light component's color animation
+    lightAnimation->AddAttributeAnimation("@Light/Color", colorAnimation);
+
+    // Apply light animation to light node
+    lightNode->SetObjectAnimation(lightAnimation);
 
     // Create more StaticModel objects to the scene, randomly positioned, rotated and scaled. For rotation, we construct a
     // quaternion from Euler angles where the Y angle (rotation about the Y axis) is randomized. The mushroom model contains
@@ -150,12 +171,20 @@ void LightAnimation::CreateInstructions()
     // Construct new Text object, set string to display and font to use
     Text* instructionText = ui->GetRoot()->CreateChild<Text>();
     instructionText->SetText("Use WASD keys and mouse/touch to move");
-    instructionText->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
+    Font* font = cache->GetResource<Font>("Fonts/Anonymous Pro.ttf");
+    instructionText->SetFont(font, 15);
     
     // Position the text relative to the screen center
     instructionText->SetHorizontalAlignment(HA_CENTER);
     instructionText->SetVerticalAlignment(VA_CENTER);
     instructionText->SetPosition(0, ui->GetRoot()->GetHeight() / 4);
+
+    // Animating text
+    Text* text = ui->GetRoot()->CreateChild<Text>("animatingText");
+    text->SetFont(font, 15);
+    text->SetHorizontalAlignment(HA_CENTER);
+    text->SetVerticalAlignment(VA_CENTER);
+    text->SetPosition(0, ui->GetRoot()->GetHeight() / 4 + 20);
 }
 
 void LightAnimation::SetupViewport()

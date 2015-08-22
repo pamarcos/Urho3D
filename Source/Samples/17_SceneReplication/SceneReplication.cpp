@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2014 the Urho3D project.
+// Copyright (c) 2008-2015 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,48 +20,50 @@
 // THE SOFTWARE.
 //
 
-#include "Button.h"
-#include "Camera.h"
-#include "CollisionShape.h"
-#include "Connection.h"
-#include "Controls.h"
-#include "CoreEvents.h"
-#include "Cursor.h"
-#include "Engine.h"
-#include "Font.h"
-#include "Graphics.h"
-#include "Input.h"
-#include "Light.h"
-#include "LineEdit.h"
-#include "Log.h"
-#include "Material.h"
-#include "Model.h"
-#include "Network.h"
-#include "NetworkEvents.h"
-#include "Octree.h"
-#include "PhysicsEvents.h"
-#include "PhysicsWorld.h"
-#include "Renderer.h"
-#include "RigidBody.h"
-#include "ResourceCache.h"
-#include "Scene.h"
-#include "StaticModel.h"
-#include "Text.h"
-#include "UI.h"
-#include "UIEvents.h"
-#include "XMLFile.h"
-#include "Zone.h"
+#include <Urho3D/Urho3D.h>
+
+#include <Urho3D/UI/Button.h>
+#include <Urho3D/Graphics/Camera.h>
+#include <Urho3D/Physics/CollisionShape.h>
+#include <Urho3D/Network/Connection.h>
+#include <Urho3D/Input/Controls.h>
+#include <Urho3D/Core/CoreEvents.h>
+#include <Urho3D/UI/Cursor.h>
+#include <Urho3D/Engine/Engine.h>
+#include <Urho3D/UI/Font.h>
+#include <Urho3D/Graphics/Graphics.h>
+#include <Urho3D/Input/Input.h>
+#include <Urho3D/Graphics/Light.h>
+#include <Urho3D/UI/LineEdit.h>
+#include <Urho3D/IO/Log.h>
+#include <Urho3D/Graphics/Material.h>
+#include <Urho3D/Graphics/Model.h>
+#include <Urho3D/Network/Network.h>
+#include <Urho3D/Network/NetworkEvents.h>
+#include <Urho3D/Graphics/Octree.h>
+#include <Urho3D/Physics/PhysicsEvents.h>
+#include <Urho3D/Physics/PhysicsWorld.h>
+#include <Urho3D/Graphics/Renderer.h>
+#include <Urho3D/Physics/RigidBody.h>
+#include <Urho3D/Resource/ResourceCache.h>
+#include <Urho3D/Scene/Scene.h>
+#include <Urho3D/Graphics/StaticModel.h>
+#include <Urho3D/UI/Text.h>
+#include <Urho3D/UI/UI.h>
+#include <Urho3D/UI/UIEvents.h>
+#include <Urho3D/Resource/XMLFile.h>
+#include <Urho3D/Graphics/Zone.h>
 
 #include "SceneReplication.h"
 
-#include "DebugNew.h"
+#include <Urho3D/DebugNew.h>
 
 // UDP port we will use
 static const unsigned short SERVER_PORT = 2345;
 // Identifier for our custom remote event we use to tell the client which object they control
 static const StringHash E_CLIENTOBJECTID("ClientObjectID");
 // Identifier for the node ID parameter in the event data
-static const ShortStringHash P_ID("ID");
+static const StringHash P_ID("ID");
 
 // Control bits we define
 static const unsigned CTRL_FORWARD = 1;
@@ -143,6 +145,10 @@ void SceneReplication::CreateScene()
     }
     
     // Create the camera. Limit far clip distance to match the fog
+    // The camera needs to be created into a local node so that each client can retain its own camera, that is unaffected by
+    // network messages. Furthermore, because the client removes all replicated scene nodes when connecting to a server scene,
+    // the screen would become blank if the camera node was replicated (as only the locally created camera is assigned to a
+    // viewport in SetupViewports() below)
     cameraNode_ = scene_->CreateChild("Camera", LOCAL);
     Camera* camera = cameraNode_->CreateComponent<Camera>();
     camera->SetFarClip(300.0f);
@@ -229,6 +235,8 @@ void SceneReplication::SubscribeToEvents()
     SubscribeToEvent(E_CLIENTDISCONNECTED, HANDLER(SceneReplication, HandleClientDisconnected));
     // This is a custom event, sent from the server to the client. It tells the node ID of the object the client should control
     SubscribeToEvent(E_CLIENTOBJECTID, HANDLER(SceneReplication, HandleClientObjectID));
+    // Events sent between client & server (remote events) must be explicitly registered or else they are not allowed to be received
+    GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTOBJECTID);
 }
 
 Button* SceneReplication::CreateButton(const String& text, int width)

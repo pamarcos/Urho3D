@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2014 the Urho3D project.
+// Copyright (c) 2008-2015 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,15 +20,18 @@
 // THE SOFTWARE.
 //
 
-#include "AnimationController.h"
+#include <Urho3D/Urho3D.h>
+
+#include <Urho3D/Graphics/AnimationController.h>
+#include <Urho3D/Core/Context.h>
+#include <Urho3D/IO/MemoryBuffer.h>
+#include <Urho3D/Physics/PhysicsEvents.h>
+#include <Urho3D/Physics/PhysicsWorld.h>
+#include <Urho3D/Physics/RigidBody.h>
+#include <Urho3D/Scene/Scene.h>
+#include <Urho3D/Scene/SceneEvents.h>
+
 #include "Character.h"
-#include "Context.h"
-#include "MemoryBuffer.h"
-#include "PhysicsEvents.h"
-#include "PhysicsWorld.h"
-#include "RigidBody.h"
-#include "Scene.h"
-#include "SceneEvents.h"
 
 Character::Character(Context* context) :
     LogicComponent(context),
@@ -46,11 +49,11 @@ void Character::RegisterObject(Context* context)
     
     // These macros register the class attributes to the Context for automatic load / save handling.
     // We specify the Default attribute mode which means it will be used both for saving into file, and network replication
-    ATTRIBUTE(Character, VAR_FLOAT, "Controls Yaw", controls_.yaw_, 0.0f, AM_DEFAULT);
-    ATTRIBUTE(Character, VAR_FLOAT, "Controls Pitch", controls_.pitch_, 0.0f, AM_DEFAULT);
-    ATTRIBUTE(Character, VAR_BOOL, "On Ground", onGround_, false, AM_DEFAULT);
-    ATTRIBUTE(Character, VAR_BOOL, "OK To Jump", okToJump_, true, AM_DEFAULT);
-    ATTRIBUTE(Character, VAR_FLOAT, "In Air Timer", inAirTimer_, 0.0f, AM_DEFAULT);
+    ATTRIBUTE("Controls Yaw", float, controls_.yaw_, 0.0f, AM_DEFAULT);
+    ATTRIBUTE("Controls Pitch", float, controls_.pitch_, 0.0f, AM_DEFAULT);
+    ATTRIBUTE("On Ground", bool, onGround_, false, AM_DEFAULT);
+    ATTRIBUTE("OK To Jump", bool, okToJump_, true, AM_DEFAULT);
+    ATTRIBUTE("In Air Timer", float, inAirTimer_, 0.0f, AM_DEFAULT);
 }
 
 void Character::Start()
@@ -138,8 +141,8 @@ void Character::HandleNodeCollision(StringHash eventType, VariantMap& eventData)
     {
         Vector3 contactPosition = contacts.ReadVector3();
         Vector3 contactNormal = contacts.ReadVector3();
-        float contactDistance = contacts.ReadFloat();
-        float contactImpulse = contacts.ReadFloat();
+        /*float contactDistance = */contacts.ReadFloat();
+        /*float contactImpulse = */contacts.ReadFloat();
         
         // If contact is below node center and mostly vertical, assume it's a ground contact
         if (contactPosition.y_ < (node_->GetPosition().y_ + 1.0f))

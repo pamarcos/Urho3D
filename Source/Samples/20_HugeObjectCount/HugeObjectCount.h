@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2014 the Urho3D project.
+// Copyright (c) 2008-2015 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@ class Scene;
 }
 
 /// Huge object count example.
-///  This sample demonstrates:
+/// This sample demonstrates:
 ///     - Creating a scene with 250 x 250 simple objects
 ///     - Competing with http://yosoygames.com.ar/wp/2013/07/ogre-2-0-is-up-to-3x-faster/ :)
 ///     - Allowing examination of performance hotspots in the rendering code
@@ -86,7 +86,7 @@ private:
     void SetupViewport();
     /// Subscribe to application-wide logic update events.
     void SubscribeToEvents();
-    /// Read input and moves the camera.
+    /// Read input and move the camera.
     void MoveCamera(float timeStep);
     /// Animate the scene.
     void AnimateObjects(float timeStep);

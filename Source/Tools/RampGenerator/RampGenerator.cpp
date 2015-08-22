@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2014 the Urho3D project.
+// Copyright (c) 2008-2015 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,19 +20,21 @@
 // THE SOFTWARE.
 //
 
-#include "ArrayPtr.h"
-#include "MathDefs.h"
-#include "ProcessUtils.h"
-#include "StringUtils.h"
+#include <Urho3D/Urho3D.h>
+
+#include <Urho3D/Container/ArrayPtr.h>
+#include <Urho3D/Math/MathDefs.h>
+#include <Urho3D/Core/ProcessUtils.h>
+#include <Urho3D/Core/StringUtils.h>
 
 #ifdef WIN32
 #include <windows.h>
 #endif
 
-#include <stb_image.h>
-#include <stb_image_write.h>
+#include <STB/stb_image.h>
+#include <STB/stb_image_write.h>
 
-#include "DebugNew.h"
+#include <Urho3D/DebugNew.h>
 
 using namespace Urho3D;
 
