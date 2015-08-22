@@ -1,4 +1,4 @@
-﻿//
+//
 // Copyright (c) 2008-2014 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,42 +20,58 @@
 // THE SOFTWARE.
 //
 
-#if defined(__APPLE__) | defined(__linux__)
+#if defined(WIN32)
 
-#include "RCCppUnix.h"
-#include "Log.h"
-#include "Urho3D.h"
-#include "FileSystem.h"
-#include "ResourceCache.h"
+#include "../Core/RCCppWin.h"
+#include "../IO/Log.h"
+#include "../IO/FileSystem.h"
+#include "../Resource/ResourceCache.h"
+
+#ifdef __MINGW32__
 #include "RCCppGppCompiler.h"
+#endif
 
 #include <stdio.h>
-#include <dlfcn.h>
+#include <windows.h>
 
 namespace Urho3D
 {
 
-RCCppUnix::RCCppUnix(Context* context) :
+RCCppWin::RCCppWin(Context* context) :
     RCCppImpl(context),
     library_(NULL),
     createObject_(NULL),
     destroyObject_(NULL),
-    compiler_(new RCCppGppCompiler(context_)),
+    firstCompilation_(true),
     fileSystem_(context_->GetSubsystem<FileSystem>())
 {
+#ifdef __MINGW32__
+    compiler_ = new RCCppGppCompiler(context_);
+#else
+#error "MSVC not supported"
+#endif
 }
 
-RCCppUnix::~RCCppUnix()
+RCCppWin::~RCCppWin()
 {
     UnloadLib();
 }
 
-bool RCCppUnix::Compile(const RCCppFile& file, const String& libraryPath, String& output)
+bool RCCppWin::Compile(const RCCppFile& file, const String& libraryPath, String& output)
 {
+    // Windows throws a file access error when trying to compile a loaded library.
+    // It allows to change its name, though. So, we change its name, compile and then remove
+    // the file when we unload the library.
+    if (!firstCompilation_)
+    {
+        oldLibPath_ = libraryPath + ".old";
+        fileSystem_->Rename(libraryPath, oldLibPath_);
+    }
+    firstCompilation_ = false;
     return compiler_->Compile(file, libraryPath, output);
 }
 
-RCCppObject* RCCppUnix::CreateObject(const String &objectName)
+RCCppObject* RCCppWin::CreateObject(const String &objectName)
 {
     if (createObject_ != NULL)
     {
@@ -68,7 +84,7 @@ RCCppObject* RCCppUnix::CreateObject(const String &objectName)
     }
 }
 
-void RCCppUnix::DestroyObject(RCCppObject *object)
+void RCCppWin::DestroyObject(RCCppObject *object)
 {
     if (object != NULL)
     {
@@ -83,63 +99,47 @@ void RCCppUnix::DestroyObject(RCCppObject *object)
     }
 }
 
-bool RCCppUnix::LoadLib(const String& libraryPath)
+bool RCCppWin::LoadLib(const String& libraryPath)
 {
     if (library_ != NULL)
     {
         UnloadLib();
     }
-
-#ifdef __linux__
-    // Hack in case it's Linux. It seems dlopen caches the library name and in case
-    // the same library name is opened again (even after closing the library), it returns
-    // the same handler (memory address). Hence, every time we need to load the library we
-    // use a different name to avoid that happening.
-    static bool firstLoad = true;
-    if (firstLoad)
-    {
-        String tmpLibraryPath = libraryPath + ".first";
-        fileSystem_->Rename(libraryPath, tmpLibraryPath);
-        library_ = dlopen(tmpLibraryPath.CString(), RTLD_LAZY);
-        fileSystem_->Rename(tmpLibraryPath, libraryPath);
-        firstLoad = false;
-    }
-    else
-    {
-        library_ = dlopen(libraryPath.CString(), RTLD_LAZY);
-    }
-#else
-    library_ = dlopen(libraryPath.CString(), RTLD_LAZY);
-#endif
+    library_ = LoadLibrary(libraryPath.CString());
     if (library_ != NULL)
     {
         String name = GetFileName(libraryPath);
-        createObject_ = (PCreateRCCppObject)dlsym(library_, String("create" + name).CString());
-        destroyObject_ = (PDestroyRCCppObject)dlsym(library_, String("destroy" + name).CString());
+        createObject_ = (PCreateRCCppObject)GetProcAddress(library_, String("create" + name).CString());
+        destroyObject_ = (PDestroyRCCppObject)GetProcAddress(library_, String("destroy" + name).CString());
         return true;
     }
     else
     {
-        LOGERROR("Error loading library " + libraryPath + ": " + dlerror());
         return false;
     }
 }
 
-void RCCppUnix::UnloadLib()
+void RCCppWin::UnloadLib()
 {
     if (library_ != NULL)
     {
-        if (dlclose(library_) != 0)
-        {
-            LOGERROR("Error closing library: " + String(dlerror()));
-        }
+        FreeLibrary(library_);
         library_ = NULL;
         mainObject_ = NULL;
         createObject_ = NULL;
         destroyObject_ = NULL;
+
+        if (!oldLibPath_.Empty())
+        {
+            fileSystem_->Delete(oldLibPath_);
+            oldLibPath_.Clear();
+        }
     }
 }
 
 }
 
+#else
+// To avoid ranlib complaining about RCCppWin.cpp having no symbols
+void RCCppWinDummy() {}
 #endif

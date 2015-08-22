@@ -23,7 +23,7 @@
 #ifndef RCCPPEVENTS_H
 #define RCCPPEVENTS_H
 
-#include "Object.h"
+#include "../Core/Object.h"
 
 namespace Urho3D
 {

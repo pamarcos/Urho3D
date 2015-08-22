@@ -23,9 +23,9 @@
 #ifndef RCCPPOBJECT_H
 #define RCCPPOBJECT_H
 
-#include "Object.h"
-#include "Context.h"
-#include "CoreEvents.h"
+#include "../Core/Object.h"
+#include "../Core/Context.h"
+#include "../Core/CoreEvents.h"
 
 using namespace Urho3D;
 

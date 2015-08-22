@@ -20,47 +20,32 @@
 // THE SOFTWARE.
 //
 
-#include "RCCppImpl.h"
-#include "RCCppMainObject.h"
-#include "Log.h"
+#ifndef RCCPPMAINOBJECT_H
+#define RCCPPMAINOBJECT_H
+
+#include "../Core/Object.h"
+#include "../Core/Context.h"
+
+#include "RCCppObject.h"
+
+using namespace Urho3D;
 
 namespace Urho3D
 {
 
-RCCppImpl::RCCppImpl(Context *context) :
-    Object(context),
-    mainObject_(NULL)
+class RCCppMainObject : public RCCppObject
 {
-}
+    OBJECT(RCCppMainObject);
 
-RCCppImpl::~RCCppImpl()
-{
-}
+    RCCppMainObject(Context* context) : RCCppObject(context) {}
 
-void RCCppImpl::Start(const String& libraryName)
-{
-    if (mainObject_ == NULL)
-    {
-        mainObject_ = static_cast<RCCppMainObject*>(CreateObject(libraryName));
-    }
-    if (mainObject_ != NULL)
-    {
-        mainObject_->Start();
-    }
-    else
-    {
-        LOGERROR("Error creating main RCCpp object " + libraryName);
-    }
-}
+    virtual void Start() = 0;
+    virtual void Stop() = 0;
+};
 
-void RCCppImpl::Stop()
-{
-    if (mainObject_ != NULL)
-    {
-        mainObject_->Stop();
-        DestroyObject(mainObject_);
-        mainObject_ = NULL;
-    }
-}
+typedef RCCppMainObject* (*PCreateRCCppMainObject)(Context*);
+typedef void (*PDestroyRCCppMainObject)(RCCppMainObject*);
 
 }
+
+#endif // RCCPPMAINOBJECT_H

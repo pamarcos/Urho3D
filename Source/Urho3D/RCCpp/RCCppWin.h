@@ -20,31 +20,53 @@
 // THE SOFTWARE.
 //
 
-#ifndef RCCPPMAINOBJECT_H
-#define RCCPPMAINOBJECT_H
+#ifndef RCCPPUNIX_H
+#define RCCPPUNIX_H
 
-#include "Object.h"
-#include "Context.h"
-#include "RCCppObject.h"
+#if defined(WIN32)
 
-using namespace Urho3D;
+#include "../Core/Object.h"
+#include "../Core/Context.h"
+#include "RCCppImpl.h"
+#include "RCCppCompiler.h"
+
+#include <windows.h>
 
 namespace Urho3D
 {
 
-class RCCppMainObject : public RCCppObject
+class RCCppMainObject;
+class RCCppObject;
+class RCCppCompiler;
+class FileSystem;
+
+class URHO3D_API RCCppWin : public RCCppImpl
 {
-    OBJECT(RCCppMainObject);
+    OBJECT(RCCppWin);
 
-    RCCppMainObject(Context* context) : RCCppObject(context) {}
+public:
+    RCCppWin(Context* context);
+    ~RCCppWin();
 
-    virtual void Start() = 0;
-    virtual void Stop() = 0;
+    bool Compile(const RCCppFile& file, const String& libraryPath, String& output);
+    bool LoadLib(const String& libraryPath);
+    void UnloadLib();
+
+    RCCppObject* CreateObject(const String& objectName);
+    void DestroyObject(RCCppObject* object);
+
+private:
+    SharedPtr<RCCppCompiler> compiler_;
+    HMODULE library_;
+    PCreateRCCppObject createObject_;
+    PDestroyRCCppObject destroyObject_;
+    FileSystem* fileSystem_;
+    bool firstCompilation_;
+    String oldLibPath_;
 };
-
-typedef RCCppMainObject* (*PCreateRCCppMainObject)(Context*);
-typedef void (*PDestroyRCCppMainObject)(RCCppMainObject*);
 
 }
 
-#endif // RCCPPMAINOBJECT_H
+#endif
+
+#endif // RCCPPUNIX_H

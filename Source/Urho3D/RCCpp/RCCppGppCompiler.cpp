@@ -21,9 +21,9 @@
 //
 
 #include "RCCppGppCompiler.h"
-#include "Log.h"
-#include "FileSystem.h"
-#include "File.h"
+#include "../IO/Log.h"
+#include "../IO/FileSystem.h"
+#include "../IO/File.h"
 
 #if defined(__APPLE__) || defined(__linux__)
 #include <unistd.h>

@@ -23,8 +23,8 @@
 #ifndef RCCPPGPPCOMPILER_H
 #define RCCPPGPPCOMPILER_H
 
-#include "Object.h"
-#include "Context.h"
+#include "../Core/Object.h"
+#include "../Core/Context.h"
 #include "RCCppFile.h"
 #include "RCCppCompiler.h"
 

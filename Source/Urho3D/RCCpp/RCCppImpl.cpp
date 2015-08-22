@@ -20,52 +20,48 @@
 // THE SOFTWARE.
 //
 
-#ifndef RCCPPUNIX_H
-#define RCCPPUNIX_H
+#include "../IO/Log.h"
 
-#if defined(WIN32)
-
-#include "Object.h"
-#include "Context.h"
 #include "RCCppImpl.h"
-#include "RCCppCompiler.h"
-#include <windows.h>
+#include "RCCppMainObject.h"
 
 namespace Urho3D
 {
 
-class RCCppMainObject;
-class RCCppObject;
-class RCCppCompiler;
-class FileSystem;
-
-class URHO3D_API RCCppWin : public RCCppImpl
+RCCppImpl::RCCppImpl(Context *context) :
+    Object(context),
+    mainObject_(NULL)
 {
-    OBJECT(RCCppWin);
-
-public:
-    RCCppWin(Context* context);
-    ~RCCppWin();
-
-    bool Compile(const RCCppFile& file, const String& libraryPath, String& output);
-    bool LoadLib(const String& libraryPath);
-    void UnloadLib();
-
-    RCCppObject* CreateObject(const String& objectName);
-    void DestroyObject(RCCppObject* object);
-
-private:
-    SharedPtr<RCCppCompiler> compiler_;
-    HMODULE library_;
-    PCreateRCCppObject createObject_;
-    PDestroyRCCppObject destroyObject_;
-    FileSystem* fileSystem_;
-    bool firstCompilation_;
-    String oldLibPath_;
-};
-
 }
 
-#endif
+RCCppImpl::~RCCppImpl()
+{
+}
 
-#endif // RCCPPUNIX_H
+void RCCppImpl::Start(const String& libraryName)
+{
+    if (mainObject_ == NULL)
+    {
+        mainObject_ = static_cast<RCCppMainObject*>(CreateObject(libraryName));
+    }
+    if (mainObject_ != NULL)
+    {
+        mainObject_->Start();
+    }
+    else
+    {
+        LOGERROR("Error creating main RCCpp object " + libraryName);
+    }
+}
+
+void RCCppImpl::Stop()
+{
+    if (mainObject_ != NULL)
+    {
+        mainObject_->Stop();
+        DestroyObject(mainObject_);
+        mainObject_ = NULL;
+    }
+}
+
+}

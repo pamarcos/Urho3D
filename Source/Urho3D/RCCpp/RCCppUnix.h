@@ -20,26 +20,49 @@
 // THE SOFTWARE.
 //
 
-#ifndef RCCPPCOMPILER_H
-#define RCCPPCOMPILER_H
+#ifndef RCCPPUNIX_H
+#define RCCPPUNIX_H
 
-#include "Object.h"
-#include "Context.h"
-#include "RCCppFile.h"
+#if defined(__APPLE__) | defined(__linux__)
+
+#include "../Core/Object.h"
+#include "../Core/Context.h"
+#include "RCCppImpl.h"
+#include "RCCppCompiler.h"
 
 namespace Urho3D
 {
 
-class URHO3D_API RCCppCompiler : public Object
+class RCCppMainObject;
+class RCCppObject;
+class RCCppCompiler;
+class FileSystem;
+
+class URHO3D_API RCCppUnix : public RCCppImpl
 {
-    OBJECT(RCCppCompiler);
+    OBJECT(RCCppUnix);
 
 public:
-    RCCppCompiler(Context* context) : Object(context) {}
+    RCCppUnix(Context* context);
+    ~RCCppUnix();
 
-    virtual bool Compile(const RCCppFile& file, const String& libraryPath, String& output) = 0;
+    bool Compile(const RCCppFile& file, const String& libraryPath, String& output);
+    bool LoadLib(const String& libraryPath);
+    void UnloadLib();
+
+    RCCppObject* CreateObject(const String& objectName);
+    void DestroyObject(RCCppObject* object);
+
+private:
+    SharedPtr<RCCppCompiler> compiler_;
+    void* library_;
+    PCreateRCCppObject createObject_;
+    PDestroyRCCppObject destroyObject_;
+    FileSystem* fileSystem_;
 };
 
 }
 
-#endif // RCCPPCOMPILER_H
+#endif
+
+#endif // RCCPPUNIX_H

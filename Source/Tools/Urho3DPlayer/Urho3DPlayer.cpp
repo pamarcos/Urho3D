@@ -40,7 +40,7 @@
 #endif
 
 #ifdef URHO3D_RCCPP
-#include "RCCpp.h"
+#include <Urho3D/RCCpp/RCCpp.h>
 #endif
 
 #include "Urho3DPlayer.h"

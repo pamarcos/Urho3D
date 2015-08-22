@@ -72,6 +72,7 @@ else ()
     option (URHO3D_64BIT "Enable 64-bit build, on MSVC default to 0, on other compilers the default is set based on the 64-bit capability of the chosen toolchain on host system" ${URHO3D_DEFAULT_64BIT})
 endif ()
 cmake_dependent_option (URHO3D_ANGELSCRIPT "Enable AngelScript scripting support" TRUE "NOT EMSCRIPTEN" FALSE)
+cmake_dependent_option (URHO3D_RCCPP "Enable Runtime-compiled C++ support" TRUE "URHO3D_FILEWATCHER" FALSE)
 option (URHO3D_LUA "Enable additional Lua scripting support")
 cmake_dependent_option (URHO3D_LUAJIT "Enable Lua scripting support using LuaJIT (check LuaJIT's CMakeLists.txt for more options)" FALSE "NOT EMSCRIPTEN" FALSE)
 option (URHO3D_NAVIGATION "Enable navigation support" TRUE)
@@ -319,6 +320,12 @@ endif ()
 # Add definition for AngelScript
 if (URHO3D_ANGELSCRIPT)
     add_definitions (-DURHO3D_ANGELSCRIPT)
+endif ()
+
+# Add definition for RCCpp
+if (URHO3D_RCCPP)
+    add_definitions (-DURHO3D_RCCPP)
+    file(COPY Source/Samples/ DESTINATION Bin/Data/RCCpp/)
 endif ()
 
 # Add definition for Lua and LuaJIT

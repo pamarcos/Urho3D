@@ -23,14 +23,15 @@
 #ifndef RCCPP_H
 #define RCCPP_H
 
-#include "Object.h"
-#include "Context.h"
+#include "../Core/Object.h"
+#include "../Core/Context.h"
+#include "../Core/Thread.h"
+#include "../UI/UIElement.h"
+#include "../UI/Text.h"
+#include "../UI/BorderImage.h"
+
 #include "RCCppImpl.h"
 #include "RCCppFile.h"
-#include "Thread.h"
-#include "UIElement.h"
-#include "Text.h"
-#include "BorderImage.h"
 
 namespace Urho3D
 {

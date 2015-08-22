@@ -20,19 +20,20 @@
 // THE SOFTWARE.
 //
 
+#include "../IO/FileWatcher.h"
+#include "../IO/FileSystem.h"
+#include "../Core/CoreEvents.h"
+#include "../IO/Log.h"
+#include "../Resource/ResourceCache.h"
+#include "../Resource/ResourceEvents.h"
+#include "../Engine/Engine.h"
+#include "../Core/Condition.h"
+#include "../UI/UI.h"
+#include "../UI/Font.h"
+
+#include "RCCppFile.h"
 #include "RCCpp.h"
 #include "RCCppEvents.h"
-#include "FileWatcher.h"
-#include "FileSystem.h"
-#include "CoreEvents.h"
-#include "Log.h"
-#include "ResourceCache.h"
-#include "ResourceEvents.h"
-#include "RCCppFile.h"
-#include "Engine.h"
-#include "Condition.h"
-#include "UI.h"
-#include "Font.h"
 
 #if defined(__APPLE__)|| defined(__linux__)
 #include "RCCppUnix.h"
