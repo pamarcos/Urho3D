@@ -54,35 +54,8 @@ const String RCCppGppCompiler::makefile_ =  ""
         "\n"
         "CPPFLAGS := -fPIC $(CPP_DEBUG_FLAGS) $(CPPFLAGS) -DURHO3D_LOGGING -DRCCPP $(EXT_DEFINES) $(EXT_CPPFLAGS) \\\n"
         "-I. \\\n"
-        "-I$(URHO3D_HOME). \\\n"
-        "-I$(URHO3D_HOME)/Build/Engine \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/RCCpp \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Audio \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Container \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Core \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Engine \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Graphics \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Input \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/IO \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Math \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Navigation \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Network \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Physics \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Resource \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Scene \\\n"
-#ifdef URHO3D_ANGELSCRIPT
-        "-I$(URHO3D_HOME)/Source/Engine/Script \\\n"
-#endif
-#ifdef URHO3D_LUA
-        "-I$(URHO3D_HOME)/Source/Engine/LuaScript \\\n"
-#endif
-        "-I$(URHO3D_HOME)/Source/Engine/UI \\\n"
-        "-I$(URHO3D_HOME)/Source/Engine/Urho2D \\\n"
-        "-I$(URHO3D_HOME)/Source/ThirdParty/Box2D \\\n"
-        "-I$(URHO3D_HOME)/Source/ThirdParty/Bullet/src \\\n"
-        "-I$(URHO3D_HOME)/Source/ThirdParty/kNet/include \\\n"
-        "-I$(URHO3D_HOME)/Source/ThirdParty/SDL/include\n"
+        "-I$(URHO3D_HOME)/include \\\n"
+        "-I$(URHO3D_HOME)/include/Urho3D/ThirdParty \\\n"
         "\n"
 #ifdef __x86_64__
         "LDFLAGS := -m64\n"
@@ -90,7 +63,7 @@ const String RCCppGppCompiler::makefile_ =  ""
         "LDFLAGS := -m32\n"
 #endif
 #if defined(__APPLE__) || defined(__linux__)
-        "LDFLAGS := $(LDFLAGS) -shared -L$(URHO3D_HOME)/Lib -lUrho3D $(EXT_LDFLAGS)\n"
+        "LDFLAGS := $(LDFLAGS) -shared -L$(URHO3D_HOME)/lib -lUrho3D $(EXT_LDFLAGS)\n"
 #elif defined(__MINGW32__)
         "LDFLAGS := $(LDFLAGS) -shared -L$(URHO3D_HOME)/Bin -lUrho3D"
 #ifdef DEBUG

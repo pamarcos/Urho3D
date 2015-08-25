@@ -25,7 +25,7 @@
 #ifndef RCCPP
 #include <Urho3D/Engine/Application.h>
 #else
-#include "RCCppMainObject.h"
+#include <Urho3D/RCCpp/RCCppMainObject.h>
 #endif
 
 namespace Urho3D
