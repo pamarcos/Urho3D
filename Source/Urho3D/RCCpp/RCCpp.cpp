@@ -91,6 +91,9 @@ bool RCCpp::ExecuteFile(const String &fileName)
     SplitPath(fileName, path, name, ext);
     libraryPath_ = path + name;
 
+    // Add the source file parent path to the resource dir to ensure ResourceCache adds a FileWatch for it
+    cache_->AddResourceDir(GetParentPath(fileName));
+
 #ifdef WIN32
     if (GetExtension(libraryPath_) != ".dll")
     {

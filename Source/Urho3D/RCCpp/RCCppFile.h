@@ -40,6 +40,9 @@ public:
     bool IsMainFile() const;
     void SetMainFile(bool value);
 
+
+    virtual bool BeginLoad(Deserializer& source) override;
+
 private:
     bool mainFile_;
 };

@@ -24,4 +24,8 @@ void RCCppFile::SetMainFile(bool value)
     mainFile_ = value;
 }
 
+bool RCCppFile::BeginLoad(Deserializer& source) {
+    return true;
+}
+
 }
