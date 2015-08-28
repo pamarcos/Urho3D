@@ -36,22 +36,33 @@
 namespace Urho3D
 {
 
-LuaFunction::LuaFunction(lua_State* luaState, int functionRef, bool needUnref) :
-    luaState_(luaState),
-    functionRef_(functionRef),
-    needUnref_(needUnref)
+LuaFunction::LuaFunction(lua_State* L, int index) :
+    luaState_(L),
+    numArguments_(-1)
 {
+    assert(L);
+    lua_pushvalue(L, index);
+    functionRef_ = luaL_ref(L, LUA_REGISTRYINDEX);
+}
+
+LuaFunction::LuaFunction(lua_State* L, lua_CFunction func) :
+    luaState_(L),
+    numArguments_(-1)
+{
+    assert(L);
+    lua_pushcfunction(L, func);
+    functionRef_ = luaL_ref(L, LUA_REGISTRYINDEX);
 }
 
 LuaFunction::~LuaFunction()
 {
-    if (needUnref_ && functionRef_ != LUA_REFNIL)
-        luaL_unref(luaState_, LUA_REGISTRYINDEX, functionRef_);
+    luaL_unref(luaState_, LUA_REGISTRYINDEX, functionRef_);
+    functionRef_ = LUA_NOREF;
 }
 
 bool LuaFunction::IsValid() const
 {
-    return functionRef_ != LUA_REFNIL;
+    return functionRef_ != LUA_REFNIL && functionRef_ != LUA_NOREF;
 }
 
 bool LuaFunction::BeginCall(const LuaScriptInstance* instance)
@@ -62,7 +73,7 @@ bool LuaFunction::BeginCall(const LuaScriptInstance* instance)
     lua_rawgeti(luaState_, LUA_REGISTRYINDEX, functionRef_);
     if (instance)
     {
-        lua_rawgeti(luaState_, LUA_REGISTRYINDEX, instance->GetScriptObjectRef());
+        lua_rawgeti(luaState_, LUA_REGISTRYINDEX, instance->GetScriptObjectRef());      // Will get a nil when reference is invalid
         numArguments_ = 1;
     }
     else
@@ -73,10 +84,14 @@ bool LuaFunction::BeginCall(const LuaScriptInstance* instance)
 
 bool LuaFunction::EndCall(int numReturns)
 {
-    if (lua_pcall(luaState_, numArguments_, numReturns, 0) != 0)
+    assert(numArguments_ >= 0);
+    int numArguments = numArguments_;
+    numArguments_ = -1;
+
+    if (lua_pcall(luaState_, numArguments, numReturns, 0) != 0)
     {
         const char* message = lua_tostring(luaState_, -1);
-        LOGERROR("Execute Lua function failed: " + String(message));
+        LOGERRORF("Execute Lua function failed: %s", message);
         lua_pop(luaState_, 1);
         return false;
     }
@@ -86,52 +101,60 @@ bool LuaFunction::EndCall(int numReturns)
 
 void LuaFunction::PushInt(int value)
 {
+    assert(numArguments_ >= 0);
     ++numArguments_;
     lua_pushinteger(luaState_, value);
 }
 
 void LuaFunction::PushBool(bool value)
 {
+    assert(numArguments_ >= 0);
     ++numArguments_;
     lua_pushboolean(luaState_, value);
 }
 
 void LuaFunction::PushFloat(float value)
 {
+    assert(numArguments_ >= 0);
     ++numArguments_;
     lua_pushnumber(luaState_, value);
 }
 
 void LuaFunction::PushDouble(double value)
 {
+    assert(numArguments_ >= 0);
     ++numArguments_;
     lua_pushnumber(luaState_, value);
 }
 
 void LuaFunction::PushString(const String& string)
 {
+    assert(numArguments_ >= 0);
     ++numArguments_;
     tolua_pushurho3dstring(luaState_, string);
 }
 
 void LuaFunction::PushUserType(void* userType, const char* typeName)
 {
+    assert(numArguments_ >= 0);
     ++numArguments_;
     tolua_pushusertype(luaState_, userType, typeName);
 }
 
 void LuaFunction::PushVariant(const Variant& variant, const char* asType)
 {
+    assert(numArguments_ >= 0);
     ++numArguments_;
     ToluaPushVariant(luaState_, &variant, asType);
 }
 
-void LuaFunction::PushLuaTable(const String& tableName)
+void LuaFunction::PushLuaTable(const char* tableName)
 {
+    assert(numArguments_ >= 0);
     ++numArguments_;
-    lua_getglobal(luaState_, tableName.CString());
+    lua_getglobal(luaState_, tableName);
     if (!lua_istable(luaState_, -1))
-        LOGERROR("Could not find lua table " + tableName);      // nil is pushed instead
+        LOGERRORF("Could not find lua table %s", tableName);      // nil is pushed instead
 }
 
 }
