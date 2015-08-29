@@ -92,9 +92,6 @@ protected:
     float pitch_;
     /// Flag to indicate whether touch input has been enabled.
     bool touchEnabled_;
-#ifdef RCCPP
-    Engine* engine_;
-#endif
 
 private:
     /// Create logo.

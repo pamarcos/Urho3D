@@ -25,6 +25,7 @@
 
 #include "../Core/Object.h"
 #include "../Core/Context.h"
+#include "../Engine/Engine.h"
 
 #include "RCCppObject.h"
 
@@ -37,10 +38,17 @@ class RCCppMainObject : public RCCppObject
 {
     OBJECT(RCCppMainObject);
 
-    RCCppMainObject(Context* context) : RCCppObject(context) {}
+public:
+    RCCppMainObject(Context* context) :
+        RCCppObject(context),
+        engine_(GetSubsystem<Engine>())
+    {}
 
     virtual void Start() = 0;
     virtual void Stop() = 0;
+
+protected:
+    SharedPtr<Engine> engine_;
 };
 
 typedef RCCppMainObject* (*PCreateRCCppMainObject)(Context*);

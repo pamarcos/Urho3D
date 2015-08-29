@@ -41,7 +41,7 @@ public:
     void SetMainFile(bool value);
 
 
-    virtual bool BeginLoad(Deserializer& source) override;
+    virtual bool BeginLoad(Deserializer& source);
 
 private:
     bool mainFile_;

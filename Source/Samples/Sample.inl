@@ -45,7 +45,6 @@ Sample::Sample(Context* context) :
     Application(context),
 #else
     RCCppMainObject(context),
-    engine_(GetSubsystem<Engine>()),
 #endif
     yaw_(0.0f),
     pitch_(0.0f),

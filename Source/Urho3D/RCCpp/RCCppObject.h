@@ -36,7 +36,11 @@ class RCCppObject : public Object
 {
     OBJECT(RCCppObject);
 
-    RCCppObject(Context* context) : Object(context) {}
+public:
+    RCCppObject(Context* context) :
+            Object(context)
+    {}
+
     virtual ~RCCppObject() {}
 
     virtual void Start() {}
