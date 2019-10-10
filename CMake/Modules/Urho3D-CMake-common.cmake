@@ -111,6 +111,7 @@ if (CMAKE_PROJECT_NAME STREQUAL Urho3D)
     cmake_dependent_option (URHO3D_MINIDUMPS "Enable minidumps on crash (VS only)" TRUE "MSVC" FALSE)
     option (URHO3D_FILEWATCHER "Enable filewatcher support" TRUE)
     cmake_dependent_option (URHO3D_RCCPP "Enable Runtime-compiled C++ support" TRUE "URHO3D_FILEWATCHER" OFF)
+    cmake_dependent_option (URHO3D_RCCPP "Enable Runtime-compiled C++ support" TRUE "URHO3D_LIB_TYPE" STATIC)
     if (CPACK_SYSTEM_NAME STREQUAL Linux)
         cmake_dependent_option (URHO3D_USE_LIB64_RPM "Enable 64-bit RPM CPack generator using /usr/lib64 and disable all other generators (Debian-based host only)" FALSE "URHO3D_64BIT AND NOT HAS_LIB64" FALSE)
         cmake_dependent_option (URHO3D_USE_LIB_DEB "Enable 64-bit DEB CPack generator using /usr/lib and disable all other generators (Redhat-based host only)" FALSE "URHO3D_64BIT AND HAS_LIB64" FALSE)
@@ -324,7 +325,7 @@ endif ()
 
 # Add definition for RCCpp
 if (URHO3D_RCCPP)
-    message("Compiling with RCCpp support. Copying example files into the Bin/Data/RCCpp folder")
+    message("Compiling with RCCpp support. Copying example files into the Bin/Data/RCCpp folder. Do not forget to define URHO3D_HOME to the build dir to be able to use it properly.")
     add_definitions (-DURHO3D_RCCPP)
     file(COPY Source/Samples/ DESTINATION ../Bin/Data/RCCpp/)
 else()
@@ -1620,3 +1621,9 @@ endif ()
 if (POST_CMAKE_FIXES)
     add_custom_target (POST_CMAKE_FIXES ALL ${POST_CMAKE_FIXES} COMMENT "Applying post-cmake fixes")
 endif ()
+
+# Workaround for Bullet header
+#include/Urho3D/ThirdParty/Bullet/LinearMath/btMatrix3x3.h:861:17: error: argument value 10880 #is outside the valid range [0, 255] [-Wargument-outside-range]
+#    __m128 vk = bt_splat_ps(_mm_load_ss((float *)&k), 0x80);
+#                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-argument-outside-range")
